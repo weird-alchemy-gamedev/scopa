@@ -3,6 +3,7 @@ using UnityEngine.Serialization;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Scopa {
     /// <summary> ScriptableObject to use for configuring how Scopa imports .MAPs, even for runtime imports too. </summary>
@@ -181,8 +182,19 @@ namespace Scopa {
 
             if (builtinDefaultMaterial == null)
                 builtinDefaultMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>( "Packages/com.radiatoryang.scopa/Runtime/Textures/BlockoutDark.mat" );
+            if (builtinDefaultMaterial == null)
+                builtinDefaultMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Runtime/Textures/BlockoutDark.mat");
             if (builtinDefaultMaterial == null )
-                builtinDefaultMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>( UnityEditor.AssetDatabase.FindAssets("BlockoutDark.mat")[0] );
+            { 
+                try
+                { 
+                    builtinDefaultMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>( UnityEditor.AssetDatabase.FindAssets("BlockoutDark.mat")[0] );
+                }
+                catch (Exception)
+                {
+                    Debug.LogWarning("Asset index out of range?");
+                }
+            }
             if (builtinDefaultMaterial == null )
                 builtinDefaultMaterial = UnityEditor.AssetDatabase.GetBuiltinExtraResource<Material>("Default-Diffuse.mat");
             return builtinDefaultMaterial;
