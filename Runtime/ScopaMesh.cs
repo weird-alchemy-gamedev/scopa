@@ -744,7 +744,7 @@ namespace Scopa {
                             #if SCOPA_USE_BURST
                             var absNormal = math.abs(facePlaneNormals[face]);
                             #else
-                            var absNormal = faceNormal.Absolute();
+                            var absNormal = facePlaneNormals[face].Absolute();
                             #endif
 
                             canBeBoxCollider = !((absNormal.x > 0.01f && absNormal.x < 0.99f) 
