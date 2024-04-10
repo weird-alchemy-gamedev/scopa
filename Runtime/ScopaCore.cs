@@ -110,23 +110,17 @@ namespace Scopa {
         }
 
         static void CacheMaterialSearch() {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             materials.Clear();
-            var materialSearch = AssetDatabase.FindAssets("t:Material");
-            foreach ( var materialSearchGUID in materialSearch) {
-                // if there's multiple Materials attached to one Asset, we have to do additional filtering
-                var allAssets = AssetDatabase.LoadAllAssetsAtPath( AssetDatabase.GUIDToAssetPath(materialSearchGUID) );
-                foreach ( var asset in allAssets ) {
-                    if ( asset != null && !materials.ContainsKey(asset.name) && asset is Material ) {
-                        // Debug.Log("loaded " + asset.name);
-                        materials.Add(asset.name, asset as Material);
-                    }
-                }
+            var materialList = UnityExtensions.RecursiveMaterialSearch();
 
+            foreach (Material material in materialList)
+            {
+                materials.Add(material.name, material);
             }
-            #else
+#else
             Debug.Log("CacheMaterialSearch() is not available at runtime.");
-            #endif
+#endif
         }
 
         /// <summary>Before generating game objects, we may want to modify some of the MapFile data. For example, when merging entities into worldspawn.</summary>

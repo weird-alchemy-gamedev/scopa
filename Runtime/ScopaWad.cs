@@ -185,8 +185,16 @@ namespace Scopa {
             whiteTexture.SetPixels(pixels);
             whiteTexture.Apply();
 
-            for (int i1 = 0; i1 < wadConfig.materials.Length; i1++) {
-                Material mat = wadConfig.materials[i1];
+            List<Material> materials = new();
+
+            foreach (string searchPath in wadConfig.materialPaths)
+            {
+                materials.AddRange(UnityExtensions.RecursiveMaterialSearch(searchPath));
+            }
+
+
+            for (int i1 = 0; i1 < materials.Count; i1++) {
+                Material mat = materials[i1];
                 if (mat == null) {
                     Debug.LogWarning($"{wadName}: materials slot {i1} is empty.");
                     continue;

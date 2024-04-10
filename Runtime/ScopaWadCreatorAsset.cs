@@ -21,8 +21,10 @@ namespace Scopa {
         [Tooltip("(default: Quarter) how much smaller to downscale each WAD texture? e.g. 1024x1024 at Quarter res (x0.25) = 256x256")]
         public WadResolution resolution = WadResolution.Quarter;
 
-        [Tooltip("for each material, generate a WAD format texture with: (1) name based on material name (all lowercase, no spaces, up to 15 characters), (2) image (mainTexture * mainColor) palettized to 256 colors")]
-        public Material[] materials;
+
+        [Tooltip("Provide a list of string paths to recursively search for materials. The project root is automatically filed in" +
+           " (e.g. you'd search Materials/Bricks)")]
+        public string[] materialPaths;
 
         public enum WadFormat {
             WAD3

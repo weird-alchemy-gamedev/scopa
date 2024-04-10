@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: aaa25fa9c0be24342aa028a70a3eb545
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 211f7e6db3048e04d8553735ac61326b, type: 3}
+  config:
+    linearColorspace: 0
+    filterMode: 0
+    compressTextures: 1
+    anisoLevel: 1
+    generateMaterials: 1
+    opaqueTemplate: {instanceID: 0}
+    alphaTemplate: {instanceID: 0}
+    atlasSize: 1
