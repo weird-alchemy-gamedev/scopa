@@ -115,7 +115,10 @@ namespace Scopa {
 
             foreach (Material material in materialList)
             {
-                materials.Add(material.name, material);
+                if (material != null)
+                { 
+                    materials.Add(material.name, material);
+                }
             }
         }
 
