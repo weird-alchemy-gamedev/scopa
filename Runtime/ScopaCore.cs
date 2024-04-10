@@ -115,7 +115,7 @@ namespace Scopa {
 
             foreach (Material material in materialList)
             {
-                if (material != null)
+                if (material != null && !materials.ContainsKey(material.name))
                 { 
                     materials.Add(material.name, material);
                 }
