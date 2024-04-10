@@ -9,7 +9,6 @@ public class UnityExtensions : MonoBehaviour
 {
     public static List<Material> RecursiveMaterialSearch(string path = "", bool relative = true)
     {
-#if UNITY_EDITOR
         var materials = new List<Material>();
         var searchPath = relative ? Path.Combine(Application.dataPath, path) : path;
         foreach (var directory in Directory.GetDirectories(searchPath))
@@ -27,9 +26,6 @@ public class UnityExtensions : MonoBehaviour
         }
 
         return materials;
-#else
-        return null;
-#endif
     }
 
     public static string SplitPathAtInclusive(string absolutePath, string splitName)

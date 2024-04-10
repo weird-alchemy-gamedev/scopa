@@ -110,7 +110,6 @@ namespace Scopa {
         }
 
         static void CacheMaterialSearch() {
-#if UNITY_EDITOR
             materials.Clear();
             var materialList = UnityExtensions.RecursiveMaterialSearch();
 
@@ -118,9 +117,6 @@ namespace Scopa {
             {
                 materials.Add(material.name, material);
             }
-#else
-            Debug.Log("CacheMaterialSearch() is not available at runtime.");
-#endif
         }
 
         /// <summary>Before generating game objects, we may want to modify some of the MapFile data. For example, when merging entities into worldspawn.</summary>
