@@ -544,7 +544,16 @@ namespace Scopa {
                         outputUVs[n] = new float2(
                             (math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w) + (faceShift[i].x % textureWidth)) / textureWidth,
                             (math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / textureHeight
-                        ) * globalTexelScale;
+                        );
+
+                        var rotationRad = math.radians(-faceRot[i]);
+
+                        var rotatedVector = new float2
+                        {
+                            x = (outputUVs[n].x * math.cos(rotationRad)) - (outputUVs[n].y * math.sin(rotationRad)),
+                            y = (outputUVs[n].x * math.sin(rotationRad)) + (outputUVs[n].y * math.cos(rotationRad))
+                        };
+                        outputUVs[n] = rotatedVector * globalTexelScale;
 #else
 
                         //var faceUScaled = Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w);
