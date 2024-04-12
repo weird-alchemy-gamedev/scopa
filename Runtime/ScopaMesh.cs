@@ -546,7 +546,7 @@ namespace Scopa {
                             (math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / textureHeight
                         );
 
-                        var rotationRad = math.radians(-faceRot[i]);
+                        var rotationRad = math.radians(faceRot[i]);
 
                         var rotatedVector = new float2
                         {
