@@ -423,13 +423,14 @@ namespace Scopa {
                 jobData.faceVertexOffsets = faceVertexOffsets;
                 jobData.faceTriIndexCounts = faceTriIndexCounts;
 
-                #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
                 jobData.faceVertices = faceVertices.Reinterpret<float3>();
                 jobData.faceU = faceU.Reinterpret<float4>();
                 jobData.faceV = faceV.Reinterpret<float4>();
+                jobData.faceRot = faceRot.Reinterpret<float>();
                 jobData.faceShift = faceShift.Reinterpret<float2>();
                 jobData.uvOverride = faceUVoverride.Reinterpret<float2>();
-                #else
+#else
                 jobData.faceVertices = faceVertices;
                 jobData.faceU = faceU;
                 jobData.faceV = faceV;
