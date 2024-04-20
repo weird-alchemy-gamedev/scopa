@@ -197,7 +197,7 @@ namespace Scopa {
 
                     face.TextureName = face.TextureName.ToLowerInvariant();
                     face.TextureName = face.TextureName
-                                        .Split(new string[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)
+                                        .Split(new string[] { @"/" }, StringSplitOptions.RemoveEmptyEntries)
                                         .LastOrDefault();
 
                     // var center = face.Vertices.Aggregate(System.Numerics.Vector3.Zero, (x, y) => x + y) / face.Vertices.Count;
