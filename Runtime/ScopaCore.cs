@@ -196,7 +196,7 @@ namespace Scopa {
                     face.VAxis = direction == ScopaMesh.Axis.Y ? -System.Numerics.Vector3.UnitZ : -System.Numerics.Vector3.UnitY;
 
                     face.TextureName = face.TextureName.ToLowerInvariant();
-
+                    Debug.Log($"Found face with texture {face.TextureName}")
                     // var center = face.Vertices.Aggregate(System.Numerics.Vector3.Zero, (x, y) => x + y) / face.Vertices.Count;
                     // Debug.DrawRay(center.ToUnity() * config.scalingFactor, face.Plane.Normal.ToUnity(), Color.yellow, 120f, false);
                     
