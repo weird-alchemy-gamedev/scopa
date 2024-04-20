@@ -173,7 +173,7 @@ namespace Scopa {
             var entityIsTrigger = config.IsEntityTrigger(entData.ClassName);
 
             // pass 1: gather all faces for occlusion checks later + build material list + cull any faces we're obviously not going to use
-            var materialLookup = new Dictionary<string, ScopaMapConfig.MaterialOverride>();
+            var materialLookup = materials;
             foreach (var solid in solids) {
                 if( config.snappingThreshold > 0 ) {
                     ScopaMesh.SnapBrushVertices(solid, config.snappingThreshold);
