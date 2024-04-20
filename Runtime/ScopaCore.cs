@@ -173,7 +173,7 @@ namespace Scopa {
             var entityIsTrigger = config.IsEntityTrigger(entData.ClassName);
 
             // pass 1: gather all faces for occlusion checks later + build material list + cull any faces we're obviously not going to use
-            var materialLookup = materials;
+            var materialLookup = new Dictionary<string, ScopaMapConfig.MaterialOverride>();
             foreach (var solid in solids) {
                 if( config.snappingThreshold > 0 ) {
                     ScopaMesh.SnapBrushVertices(solid, config.snappingThreshold);
@@ -196,7 +196,7 @@ namespace Scopa {
                     face.VAxis = direction == ScopaMesh.Axis.Y ? -System.Numerics.Vector3.UnitZ : -System.Numerics.Vector3.UnitY;
 
                     face.TextureName = face.TextureName.ToLowerInvariant();
-                    Debug.Log($"Found face with texture {face.TextureName}")
+
                     // var center = face.Vertices.Aggregate(System.Numerics.Vector3.Zero, (x, y) => x + y) / face.Vertices.Count;
                     // Debug.DrawRay(center.ToUnity() * config.scalingFactor, face.Plane.Normal.ToUnity(), Color.yellow, 120f, false);
                     
@@ -220,6 +220,7 @@ namespace Scopa {
 
                     // match this face's texture name to a material
                     if ( !materialLookup.ContainsKey(face.TextureName) ) {
+                        Debug.Log($"Found unique texture name {face.TextureName}")
                         var newMaterial = defaultMaterial;
                         var materialOverride = config.GetMaterialOverrideFor(face.TextureName);
 
@@ -237,6 +238,7 @@ namespace Scopa {
                         
                         // if still no better material found, then search the AssetDatabase for a matching texture name
                         if ( config.findMaterials && materialOverride == null && materials.Count > 0 && materials.ContainsKey(face.TextureName) ) {
+                            Debug.Log($"Grabbed cached material for {face.TextureName}")
                             newMaterial = materials[face.TextureName];
                         }
 
