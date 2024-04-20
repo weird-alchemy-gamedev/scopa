@@ -220,7 +220,7 @@ namespace Scopa {
 
                     // match this face's texture name to a material
                     if ( !materialLookup.ContainsKey(face.TextureName) ) {
-                        Debug.Log($"Found unique texture name {face.TextureName}")
+                        Debug.Log($"Found unique texture name {face.TextureName}");
                         var newMaterial = defaultMaterial;
                         var materialOverride = config.GetMaterialOverrideFor(face.TextureName);
 
@@ -238,7 +238,7 @@ namespace Scopa {
                         
                         // if still no better material found, then search the AssetDatabase for a matching texture name
                         if ( config.findMaterials && materialOverride == null && materials.Count > 0 && materials.ContainsKey(face.TextureName) ) {
-                            Debug.Log($"Grabbed cached material for {face.TextureName}")
+                            Debug.Log($"Grabbed cached material for {face.TextureName}");
                             newMaterial = materials[face.TextureName];
                         }
 
