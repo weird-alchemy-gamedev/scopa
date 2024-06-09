@@ -177,7 +177,7 @@ namespace Scopa {
             lastActivator = activator;
             targetDelayRemaining = targetDelay;
             resetDelayRemaining = waitReset + 0.001f; // add small reset delay to ensure 1 frame between activations
-
+            Activate();
             return true;
         }
 
