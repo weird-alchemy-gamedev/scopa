@@ -75,16 +75,31 @@ namespace Scopa {
         IScopaEntityLogic[] allTargets;
 
         protected void Awake() {
-            OnAwake();
             // if this entity has a targetName, it needs to register itself so other entities can target it
-            if ( string.IsNullOrWhiteSpace(targetName) )
-                return;
+            if ( !string.IsNullOrWhiteSpace(targetName) )
+            { 
 
-            if ( !entityLookup.ContainsKey(targetName) )
-                entityLookup.Add( targetName, new List<ScopaEntity>() );
+                if (!entityLookup.ContainsKey(targetName) )
+                    entityLookup.Add(targetName, new List<ScopaEntity>());
 
-            if (!entityLookup[targetName].Contains(this))
-                entityLookup[targetName].Add(this);
+                var marked = new List<int>();
+                for (int i = 0; i < entityLookup[targetName].Count; i++)
+                {
+                    if (entityLookup[targetName][i].gameObject == null)
+                        marked.Add(i);
+                }
+
+                foreach (var markedIndex in marked)
+                {
+                    entityLookup[targetName].RemoveAt(markedIndex);
+                }
+
+                if (!entityLookup[targetName].Contains(this))
+                    entityLookup[targetName].Add(this);
+
+            }
+
+            OnAwake();
         }
 
         protected virtual void OnAwake() {}
