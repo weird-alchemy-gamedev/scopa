@@ -85,7 +85,7 @@ namespace Scopa {
                 var marked = new List<int>();
                 for (int i = 0; i < entityLookup[targetName].Count; i++)
                 {
-                    if (entityLookup[targetName][i].gameObject == null)
+                    if (entityLookup[targetName][i] == null)
                         marked.Add(i);
                 }
 
@@ -177,7 +177,7 @@ namespace Scopa {
             lastActivator = activator;
             targetDelayRemaining = targetDelay;
             resetDelayRemaining = waitReset + 0.001f; // add small reset delay to ensure 1 frame between activations
-
+            Activate();
             return true;
         }
 
