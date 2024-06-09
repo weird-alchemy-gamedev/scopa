@@ -83,7 +83,8 @@ namespace Scopa {
             if ( !entityLookup.ContainsKey(targetName) )
                 entityLookup.Add( targetName, new List<ScopaEntity>() );
 
-            entityLookup[targetName].Add(this);
+            if (!entityLookup[targetName].Contains(this))
+                entityLookup[targetName].Add(this);
         }
 
         protected virtual void OnAwake() {}
@@ -161,6 +162,7 @@ namespace Scopa {
             lastActivator = activator;
             targetDelayRemaining = targetDelay;
             resetDelayRemaining = waitReset + 0.001f; // add small reset delay to ensure 1 frame between activations
+
             return true;
         }
 
