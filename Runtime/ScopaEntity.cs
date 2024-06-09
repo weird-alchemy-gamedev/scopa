@@ -113,7 +113,7 @@ namespace Scopa {
             // normal target
             if ( !string.IsNullOrWhiteSpace(targetTarget) && entityLookup.ContainsKey(targetTarget) ) {
                 foreach( var targetEntity in entityLookup[targetTarget] ) {
-                    targetEntity.TryActivate(lastActivator);
+                    targetEntity.TryActivate(this);
                 }
             }
 
