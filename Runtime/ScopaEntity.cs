@@ -75,6 +75,7 @@ namespace Scopa {
         IScopaEntityLogic[] allTargets;
 
         protected void Awake() {
+            OnAwake();
             // if this entity has a targetName, it needs to register itself so other entities can target it
             if ( string.IsNullOrWhiteSpace(targetName) )
                 return;
@@ -83,7 +84,6 @@ namespace Scopa {
                 entityLookup.Add( targetName, new List<ScopaEntity>() );
 
             entityLookup[targetName].Add(this);
-            OnAwake();
         }
 
         protected virtual void OnAwake() {}
