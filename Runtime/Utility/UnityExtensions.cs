@@ -7,6 +7,7 @@ using UnityEngine;
 
 public class UnityExtensions : MonoBehaviour
 {
+#if UNITY_EDITOR
     public static List<Material> RecursiveMaterialSearch(string path = "", bool relative = true)
     {
         var materials = new List<Material>();
@@ -27,6 +28,8 @@ public class UnityExtensions : MonoBehaviour
 
         return materials;
     }
+
+#endif
 
     public static string SplitPathAtInclusive(string absolutePath, string splitName)
     {

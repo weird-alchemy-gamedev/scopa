@@ -186,12 +186,12 @@ namespace Scopa {
             whiteTexture.Apply();
 
             List<Material> materials = new();
-
+#if UNITY_EDITOR
             foreach (string searchPath in wadConfig.materialPaths)
             {
                 materials.AddRange(UnityExtensions.RecursiveMaterialSearch(searchPath));
             }
-
+#endif
 
             for (int i1 = 0; i1 < materials.Count; i1++) {
                 Material mat = materials[i1];

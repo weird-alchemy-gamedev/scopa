@@ -82,14 +82,20 @@ namespace Scopa {
 
         /// <summary>The main function for converting parsed MapFile data into a Unity GameObject with 3D mesh and colliders.
         /// Outputs a lists of built meshes (e.g. so UnityEditor can serialize them)</summary>
-        public static GameObject BuildMapIntoGameObject( MapFile mapFile, ScopaMapConfig config, out List<ScopaMeshData> meshList ) {
-            var rootGameObject = new GameObject( mapName );
+        public static GameObject BuildMapIntoGameObject(MapFile mapFile, ScopaMapConfig config, out List<ScopaMeshData> meshList) {
+            var rootGameObject = new GameObject(mapName);
             var defaultMaterial = config.GetDefaultMaterial();
 
-            BuildMapPrepass( mapFile, config );
-            if ( config.findMaterials )
-                CacheMaterialSearch();
+            BuildMapPrepass(mapFile, config);
 
+
+            if (config.findMaterials)
+            {
+#if UNITY_EDITOR
+                CacheMaterialSearch();
+#endif
+                // ALCH TODO - Maybe create a table of materials to store at runtime
+            }
             meshList = new List<ScopaMeshData>(8192);
             ScopaCore.AddGameObjectFromEntityRecursive(meshList, rootGameObject, mapFile.Worldspawn, mapName, defaultMaterial, config);
 
@@ -109,6 +115,7 @@ namespace Scopa {
             return rootGameObject;
         }
 
+#if UNITY_EDITOR
         static void CacheMaterialSearch() {
             materials.Clear();
             var materialList = UnityExtensions.RecursiveMaterialSearch();
@@ -122,6 +129,8 @@ namespace Scopa {
                 }
             }
         }
+#endif
+
 
         /// <summary>Before generating game objects, we may want to modify some of the MapFile data. For example, when merging entities into worldspawn.</summary>
         static void BuildMapPrepass( MapFile mapFile, ScopaMapConfig config ) {

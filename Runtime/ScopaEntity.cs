@@ -83,7 +83,10 @@ namespace Scopa {
                 entityLookup.Add( targetName, new List<ScopaEntity>() );
 
             entityLookup[targetName].Add(this);
+            OnAwake();
         }
+
+        protected virtual void OnAwake() {}
 
         protected void Update() {
             // target timer
@@ -99,7 +102,11 @@ namespace Scopa {
                 if ( resetDelayRemaining <= 0 )
                     Reset();
             }
+
+            OnUpdate();
         }
+
+        protected virtual void OnUpdate() { }
 
         protected void FireTarget() {
             // normal target
