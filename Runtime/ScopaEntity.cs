@@ -78,7 +78,6 @@ namespace Scopa {
             // if this entity has a targetName, it needs to register itself so other entities can target it
             if ( !string.IsNullOrWhiteSpace(targetName) )
             { 
-
                 if (!entityLookup.ContainsKey(targetName) )
                     entityLookup.Add(targetName, new List<ScopaEntity>());
 
@@ -86,7 +85,9 @@ namespace Scopa {
                 for (int i = 0; i < entityLookup[targetName].Count; i++)
                 {
                     if (entityLookup[targetName][i] == null)
+                    { 
                         marked.Add(i);
+                    }
                 }
 
                 foreach (var markedIndex in marked)
@@ -95,7 +96,9 @@ namespace Scopa {
                 }
 
                 if (!entityLookup[targetName].Contains(this))
+                { 
                     entityLookup[targetName].Add(this);
+                }
 
             }
 
@@ -106,17 +109,22 @@ namespace Scopa {
 
         protected void Update() {
             // target timer
-            if ( targetDelayRemaining >= 0 && !isLocked ) {
+            if ( targetDelayRemaining >= 0 && !isLocked ) 
+            {
                 targetDelayRemaining -= Time.deltaTime;
-                if ( canActivate ) {
+                if ( canActivate ) 
+                {
                     Activate();
                     FireTarget();
                 }
             } // reset cooldown timer
-            else if ( resetDelayRemaining > 0 && waitReset >= 0 && !isLocked) {
+            else if ( resetDelayRemaining > 0 && waitReset >= 0 && !isLocked) 
+            {
                 resetDelayRemaining -= Time.deltaTime;
                 if ( resetDelayRemaining <= 0 )
+                { 
                     Reset();
+                }
             }
 
             OnUpdate();
@@ -126,29 +134,37 @@ namespace Scopa {
 
         protected void FireTarget() {
             // normal target
-            if ( !string.IsNullOrWhiteSpace(targetTarget) && entityLookup.ContainsKey(targetTarget) ) {
-                foreach( var targetEntity in entityLookup[targetTarget] ) {
+            if ( !string.IsNullOrWhiteSpace(targetTarget) && entityLookup.ContainsKey(targetTarget) ) 
+            {
+                foreach( var targetEntity in entityLookup[targetTarget] ) 
+                {
                     targetEntity.TryActivate(this);
                 }
             }
 
             // lock target
-            if ( !string.IsNullOrWhiteSpace(lockTarget) && entityLookup.ContainsKey(lockTarget) ) {
-                foreach( var targetEntity in entityLookup[lockTarget] ) {
+            if ( !string.IsNullOrWhiteSpace(lockTarget) && entityLookup.ContainsKey(lockTarget) ) 
+            {
+                foreach( var targetEntity in entityLookup[lockTarget] ) 
+                {
                     targetEntity.Lock();
                 }
             }
 
             // unlock target
-            if ( !string.IsNullOrWhiteSpace(unlockTarget) && entityLookup.ContainsKey(unlockTarget) ) {
-                foreach( var targetEntity in entityLookup[unlockTarget] ) {
+            if ( !string.IsNullOrWhiteSpace(unlockTarget) && entityLookup.ContainsKey(unlockTarget) ) 
+            {
+                foreach( var targetEntity in entityLookup[unlockTarget] ) 
+                {
                     targetEntity.Unlock();
                 }
             }
 
             // kill target
-            if ( !string.IsNullOrWhiteSpace(killTarget) && entityLookup.ContainsKey(killTarget) ) {
-                foreach( var targetEntity in entityLookup[killTarget] ) {
+            if ( !string.IsNullOrWhiteSpace(killTarget) && entityLookup.ContainsKey(killTarget) ) 
+            {
+                foreach( var targetEntity in entityLookup[killTarget] ) 
+                {
                     targetEntity.Kill();
                 }
             }
@@ -157,7 +173,8 @@ namespace Scopa {
         public void Reset() {
             // notify everything about reset
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) {
+            foreach( var target in allTargets ) 
+            {
                 target.OnEntityReset();
             }
             resetDelayRemaining = -1;
@@ -168,11 +185,9 @@ namespace Scopa {
         /// returns false if entity (a) is already activating, or (b) hasn't reset yet, or (c) is locked. 
         /// Pass in 'force = true' to ignore these checks and force activation. 
         /// Note that 'activator' might be null. </summary>
-        public bool TryActivate(ScopaEntity activator, bool force = false) {
-            if ( !canActivate && !force ) {
-                Debug.Log($"{gameObject.name} TryActivate() failed. delay: {targetDelayRemaining}, resetWait: {resetDelayRemaining}");
-                return false;
-            }
+        public bool TryActivate(ScopaEntity activator, bool force = false) 
+        {
+            if ( !canActivate && !force ) return false;
 
             lastActivator = activator;
             targetDelayRemaining = targetDelay;
@@ -187,16 +202,16 @@ namespace Scopa {
         
         protected void CacheTargetsIfNeeded() {
             // ignore costly GetComponentsInChildren call
-            if ( cacheChildrenForDispatch && allTargets != null )
-                return;
-
+            if ( cacheChildrenForDispatch && allTargets != null ) return;
+            
             allTargets = GetComponentsInChildren<IScopaEntityLogic>();
         }
 
         public void Activate() {
             Debug.Log(gameObject.name + " is activating!");
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) {
+            foreach( var target in allTargets ) 
+            {
                 target.OnEntityActivate(lastActivator);
             }
         }
@@ -204,7 +219,8 @@ namespace Scopa {
         public void Lock() {
             isLocked = true;
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) {
+            foreach( var target in allTargets ) 
+            {
                 target.OnEntityLocked();
             }
         }
@@ -212,14 +228,16 @@ namespace Scopa {
         public void Unlock() {
             isLocked = false;
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) {
+            foreach( var target in allTargets ) 
+            {
                 target.OnEntityUnlocked();
             }
         }
 
         public void Kill() {
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) {
+            foreach( var target in allTargets ) 
+            {
                 target.OnEntityKilled();
             }
             entityLookup[targetName].Remove(this);
