@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -14,7 +15,14 @@ namespace Scopa {
     [SelectionBase]
     public class ScopaEntity : MonoBehaviour, IScopaEntityLogic, IScopaEntityData, IScopaEntityImport
     {
+
+
         #region Entity Logic
+
+        /// <summary>
+        /// This is the character to use in your target text boxes to indicate the names of multiple targets you'd want to hit.
+        /// </summary>
+        const string TARGET_LIST_CHAR = ";";
 
         /// <summary> a big global dictionary lookup to match entities to their names. Note that multiple entities can share the same name. </summary>
         public static Dictionary<string, List<ScopaEntity>> entityLookup = new Dictionary<string, List<ScopaEntity>>();
@@ -74,6 +82,63 @@ namespace Scopa {
         public bool cacheChildrenForDispatch = true;
         IScopaEntityLogic[] allTargets;
 
+        List<IScopaEntityLogic> _cachedTargets;
+        List<IScopaEntityLogic> cachedTargets
+        {
+            get
+            { 
+                if (_cachedTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                }
+                return _cachedTargets;
+            }
+        }
+
+        List<IScopaEntityLogic> _cachedLockTargets;
+        List<IScopaEntityLogic> cachedLockTargets
+        {
+            get
+            {
+                if (_cachedLockTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedLockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                }
+                return _cachedLockTargets;
+            }
+        }
+
+        List<IScopaEntityLogic> _cachedUnlockTargets;
+        List<IScopaEntityLogic> cachedUnlockTargets
+        {
+            get
+            {
+                if (_cachedUnlockTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedUnlockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                }
+                return _cachedUnlockTargets;
+            }
+        }
+
+        List<IScopaEntityLogic> _cachedKillTargets;
+        List<IScopaEntityLogic> cachedKillTargets
+        {
+            get
+            {
+                if (_cachedKillTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedKillTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                }
+                return _cachedKillTargets;
+            }
+        }
+
+        static string SanitizeString(string input)
+        {
+            return input.Trim().Normalize();
+        }
+
         protected void Awake() {
             // if this entity has a entityName, it needs to register itself so other entities can target it
             if (Application.isPlaying && !string.IsNullOrWhiteSpace(entityName))
@@ -87,7 +152,6 @@ namespace Scopa {
                 { 
                     entityLookup[entityName].Add(this);
                 }
-
             }
 
             OnAwake();
@@ -123,38 +187,51 @@ namespace Scopa {
         protected void FireTarget() 
         {
             // normal target
-            if ( !string.IsNullOrWhiteSpace(entityTarget) && entityLookup.ContainsKey(entityTarget) ) 
-            {
-                foreach( var targetEntity in entityLookup[entityTarget] ) 
+            foreach (var target in cachedTargets)
+            { 
+                if ( !string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target) ) 
                 {
-                    targetEntity.TryActivate(this);
+                    foreach( var targetEntity in entityLookup[target] ) 
+                    {
+                        targetEntity.TryActivate(this);
+                    }
                 }
             }
 
-            // lock target
-            if ( !string.IsNullOrWhiteSpace(lockTarget) && entityLookup.ContainsKey(lockTarget) ) 
+            foreach (var target in cachedLockTargets)
             {
-                foreach( var targetEntity in entityLookup[lockTarget] ) 
+                // lock target
+                if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
                 {
-                    targetEntity.Lock();
+                    foreach (var targetEntity in entityLookup[target])
+                    {
+                        targetEntity.Lock();
+                    }
                 }
             }
 
             // unlock target
-            if ( !string.IsNullOrWhiteSpace(unlockTarget) && entityLookup.ContainsKey(unlockTarget) ) 
+            foreach (var target in cachedUnlockTargets)
             {
-                foreach( var targetEntity in entityLookup[unlockTarget] ) 
+                // lock target
+                if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
                 {
-                    targetEntity.Unlock();
+                    foreach (var targetEntity in entityLookup[target])
+                    {
+                        targetEntity.Unlock();
+                    }
                 }
             }
 
-            // kill target
-            if ( !string.IsNullOrWhiteSpace(killTarget) && entityLookup.ContainsKey(killTarget) ) 
+            foreach (var target in cachedKillTargets)
             {
-                foreach( var targetEntity in entityLookup[killTarget] ) 
+                // lock target
+                if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
                 {
-                    targetEntity.Kill();
+                    foreach (var targetEntity in entityLookup[target])
+                    {
+                        targetEntity.Lock();
+                    }
                 }
             }
         }
