@@ -305,7 +305,7 @@ public static class MeshExtensions {
     /// 
     /// For some reason the built-in RecalculateTangents function produces artifacts on dense geometries.
     /// 
-    /// This implementation id derived from:
+    /// This implementation ScopaEntityID derived from:
     /// 
     /// Lengyel, Eric. Computing Tangent Space Basis Vectors for an Arbitrary Mesh.
     /// Terathon Software 3D Graphics Library, 2001.

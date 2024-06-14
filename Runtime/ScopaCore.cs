@@ -405,11 +405,11 @@ namespace Scopa {
                 } else if ( thisMeshPrefab == null ) { 
                     newMeshObj.layer = config.layer;
                 }
-
+#if UNITY_EDITOR
                 if ( thisMeshPrefab == null && config.IsEntityStatic(entData.ClassName)) {
                     SetGameObjectStatic(newMeshObj, entityNeedsCollider && !entityIsTrigger);
                 }
-
+#endif
                 // detect smoothing angle, if defined via map config or material config or entity
                 var smoothNormalAngle = config.defaultSmoothingAngle;
                 if (entData.TryGetBool("_phong", out var phong)) {
@@ -534,6 +534,7 @@ namespace Scopa {
             // #endif
         }
 
+#if UNITY_EDITOR
         static void SetGameObjectStatic(GameObject go, bool isNavigationStatic = true) {
             if ( isNavigationStatic ) {
                 go.isStatic = true;
@@ -547,7 +548,7 @@ namespace Scopa {
                 );
             }
         }
-
+#endif
         /// <summary> for each solid in an Entity, add either a Box Collider or a Mesh Collider component... or make one big merged Mesh Collider </summary>
         // public static List<Mesh> AddColliders(GameObject gameObject, ScopaEntityData ent, ScopaMapConfig config, string namePrefix, bool forceBoxCollidersForAll = false) {
         //     var meshList = new List<Mesh>();
@@ -641,7 +642,7 @@ namespace Scopa {
         //     ScopaMesh.ClearMeshBuffers();
         //     ScopaMesh.BufferMeshDataFromSolid(solid, config, null, true);
         //     var newMesh = ScopaMesh.BuildMeshFromBuffers( colliderName + "Collider", config, gameObject.transform.position, -1);
-        
+
         //     var newGO = new GameObject("MeshColliderConvex " + colliderName );
         //     newGO.transform.SetParent( gameObject.transform );
         //     newGO.transform.localPosition = Vector3.zero;
@@ -655,7 +656,7 @@ namespace Scopa {
         //     //     | MeshColliderCookingOptions.UseFastMidphase;
         //     newMeshCollider.isTrigger = isTrigger;
         //     newMeshCollider.sharedMesh = newMesh;
-            
+
         //     return newMesh;
         // }
 

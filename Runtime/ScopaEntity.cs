@@ -22,17 +22,17 @@ namespace Scopa {
         /// <summary> The name of this entity, for map triggering purposes.</summary>
         [Tooltip("The name of this entity, so other entities can target it.")]
         [BindFgd("targetname", BindFgd.VarType.String, "Name")] 
-        public string targetName;
+        public string entityName;
 
         /// <summary> When this entity activates, then also activate this entity(s).</summary>
         [Tooltip("When this entity activates, then also activate this entity(s) by name.")]
         [BindFgd("target", BindFgd.VarType.String, "Target")] 
-        public string targetTarget;
+        public string entityTarget;
 
         /// <summary> When this entity activates, the seconds before it fires its target(s). </summary>
         [Tooltip("When this entity activates, the seconds before it fires its target.")]
         [BindFgd("delay", BindFgd.VarType.Float, "Delay Before Target")] 
-        public float targetDelay = 0f;
+        public float activationDelay = 0f;
 
         /// <summary> internal timer for when to activate target(s), based on delay </summary>
         protected float targetDelayRemaining = -1;
@@ -75,29 +75,17 @@ namespace Scopa {
         IScopaEntityLogic[] allTargets;
 
         protected void Awake() {
-            // if this entity has a targetName, it needs to register itself so other entities can target it
-            if ( !string.IsNullOrWhiteSpace(targetName) )
+            // if this entity has a entityName, it needs to register itself so other entities can target it
+            if (Application.isPlaying && !string.IsNullOrWhiteSpace(entityName))
             { 
-                if (!entityLookup.ContainsKey(targetName) )
-                    entityLookup.Add(targetName, new List<ScopaEntity>());
-
-                var marked = new List<int>();
-                for (int i = 0; i < entityLookup[targetName].Count; i++)
+                if (!entityLookup.ContainsKey(entityName))
                 {
-                    if (entityLookup[targetName][i] == null)
-                    { 
-                        marked.Add(i);
-                    }
+                    entityLookup.Add(entityName, new List<ScopaEntity>());
                 }
 
-                foreach (var markedIndex in marked)
-                {
-                    entityLookup[targetName].RemoveAt(markedIndex);
-                }
-
-                if (!entityLookup[targetName].Contains(this))
+                if (!entityLookup[entityName].Contains(this))
                 { 
-                    entityLookup[targetName].Add(this);
+                    entityLookup[entityName].Add(this);
                 }
 
             }
@@ -132,11 +120,12 @@ namespace Scopa {
 
         protected virtual void OnUpdate() { }
 
-        protected void FireTarget() {
+        protected void FireTarget() 
+        {
             // normal target
-            if ( !string.IsNullOrWhiteSpace(targetTarget) && entityLookup.ContainsKey(targetTarget) ) 
+            if ( !string.IsNullOrWhiteSpace(entityTarget) && entityLookup.ContainsKey(entityTarget) ) 
             {
-                foreach( var targetEntity in entityLookup[targetTarget] ) 
+                foreach( var targetEntity in entityLookup[entityTarget] ) 
                 {
                     targetEntity.TryActivate(this);
                 }
@@ -190,24 +179,27 @@ namespace Scopa {
             if ( !canActivate && !force ) return false;
 
             lastActivator = activator;
-            targetDelayRemaining = targetDelay;
+            targetDelayRemaining = activationDelay;
             resetDelayRemaining = waitReset + 0.001f; // add small reset delay to ensure 1 frame between activations
             Activate();
             return true;
         }
 
-        public void TryActivate(bool force = false) {
+        public void TryActivate(bool force = false) 
+        {
             TryActivate(null, force);
         }
         
-        protected void CacheTargetsIfNeeded() {
+        protected void CacheTargetsIfNeeded() 
+        {
             // ignore costly GetComponentsInChildren call
             if ( cacheChildrenForDispatch && allTargets != null ) return;
             
             allTargets = GetComponentsInChildren<IScopaEntityLogic>();
         }
 
-        public void Activate() {
+        public void Activate() 
+        {
             Debug.Log(gameObject.name + " is activating!");
             CacheTargetsIfNeeded();
             foreach( var target in allTargets ) 
@@ -216,7 +208,8 @@ namespace Scopa {
             }
         }
 
-        public void Lock() {
+        public void Lock() 
+        {
             isLocked = true;
             CacheTargetsIfNeeded();
             foreach( var target in allTargets ) 
@@ -225,7 +218,8 @@ namespace Scopa {
             }
         }
 
-        public void Unlock() {
+        public void Unlock() 
+        {
             isLocked = false;
             CacheTargetsIfNeeded();
             foreach( var target in allTargets ) 
@@ -234,13 +228,14 @@ namespace Scopa {
             }
         }
 
-        public void Kill() {
+        public void Kill() 
+        {
             CacheTargetsIfNeeded();
             foreach( var target in allTargets ) 
             {
                 target.OnEntityKilled();
             }
-            entityLookup[targetName].Remove(this);
+            entityLookup[entityName].Remove(this);
             Destroy( this.gameObject );
         }
 
@@ -266,7 +261,7 @@ namespace Scopa {
         public bool[] GetSpawnFlags(int maxFlagCount = 24) => entityData.GetSpawnFlags(maxFlagCount);
 
         /// <summary> the entity number, based on the order it was parsed within the map file </summary>
-        public int id => entityData.ID;
+        public int ScopaEntityID => entityData.ID;
 
         /// <summary> parses property as an string, essentially the raw data; empty or whitespace will return false </summary>
         public bool TryGetString(string propertyKey, out string text) => entityData.TryGetString(propertyKey, out text);

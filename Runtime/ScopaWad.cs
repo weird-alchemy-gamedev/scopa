@@ -35,7 +35,7 @@ namespace Scopa {
                 return newWad;
             }
         }
-
+#if UNITY_EDITOR
         public static List<Texture2D> BuildWadTextures(WadFile wad, ScopaWadConfig config) {
             if ( wad == null || wad.Entries == null || wad.Entries.Count == 0) {
                 Debug.LogError("Couldn't parse WAD file " + wad.Name);
@@ -108,7 +108,7 @@ namespace Scopa {
 
             return material;
         }
-
+#endif
         public static Material GenerateMaterialOpaque( ScopaWadConfig config ) {
             // TODO: URP, HDRP
             Material material;
