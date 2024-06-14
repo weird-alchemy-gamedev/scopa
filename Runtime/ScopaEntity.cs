@@ -89,7 +89,7 @@ namespace Scopa {
             { 
                 if (_cachedTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
                 {
-                    _cachedTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                    _cachedTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
                 return _cachedTargets;
             }
@@ -102,7 +102,7 @@ namespace Scopa {
             {
                 if (_cachedLockTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
                 {
-                    _cachedLockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                    _cachedLockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
                 return _cachedLockTargets;
             }
@@ -115,7 +115,7 @@ namespace Scopa {
             {
                 if (_cachedUnlockTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
                 {
-                    _cachedUnlockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                    _cachedUnlockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
                 return _cachedUnlockTargets;
             }
@@ -128,7 +128,7 @@ namespace Scopa {
             {
                 if (_cachedKillTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
                 {
-                    _cachedKillTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x));
+                    _cachedKillTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
                 return _cachedKillTargets;
             }
