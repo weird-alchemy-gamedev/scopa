@@ -82,8 +82,8 @@ namespace Scopa {
         public bool cacheChildrenForDispatch = true;
         IScopaEntityLogic[] allTargets;
 
-        List<IScopaEntityLogic> _cachedTargets;
-        List<IScopaEntityLogic> cachedTargets
+        List<string> _cachedTargets;
+        List<string> cachedTargets
         {
             get
             { 
@@ -95,8 +95,8 @@ namespace Scopa {
             }
         }
 
-        List<IScopaEntityLogic> _cachedLockTargets;
-        List<IScopaEntityLogic> cachedLockTargets
+        List<string> _cachedLockTargets;
+        List<string> cachedLockTargets
         {
             get
             {
@@ -108,8 +108,8 @@ namespace Scopa {
             }
         }
 
-        List<IScopaEntityLogic> _cachedUnlockTargets;
-        List<IScopaEntityLogic> cachedUnlockTargets
+        List<string> _cachedUnlockTargets;
+        List<string> cachedUnlockTargets
         {
             get
             {
@@ -121,8 +121,8 @@ namespace Scopa {
             }
         }
 
-        List<IScopaEntityLogic> _cachedKillTargets;
-        List<IScopaEntityLogic> cachedKillTargets
+        List<string> _cachedKillTargets;
+        List<string> cachedKillTargets
         {
             get
             {
