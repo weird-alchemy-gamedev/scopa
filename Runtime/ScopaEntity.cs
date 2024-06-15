@@ -74,6 +74,59 @@ namespace Scopa {
         public bool cacheChildrenForDispatch = true;
         IScopaEntityLogic[] allTargets;
 
+
+        List<string> _cachedTargets = null;
+        List<string> cachedTargets
+        {
+            get
+            {
+                if ((_cachedTargets == null || _cachedTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
+                }
+                return _cachedTargets;
+            }
+        }
+
+        List<string> _cachedLockTargets = null;
+        List<string> cachedLockTargets
+        {
+            get
+            {
+                if ((_cachedLockTargets == null || _cachedLockTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedLockTargets = lockTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
+                }
+                return _cachedLockTargets;
+            }
+        }
+
+        List<string> _cachedUnlockTargets = null;
+        List<string> cachedUnlockTargets
+        {
+            get
+            {
+                if ((_cachedUnlockTargets == null || _cachedUnlockTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedUnlockTargets = unlockTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
+                }
+                return _cachedUnlockTargets;
+            }
+        }
+
+        List<string> _cachedKillTargets = null;
+        List<string> cachedKillTargets
+        {
+            get
+            {
+                if ((_cachedKillTargets == null || _cachedKillTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
+                {
+                    _cachedKillTargets = killTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
+                }
+                return _cachedKillTargets;
+            }
+        }
+
         protected void Awake() {
             // if this entity has a targetName, it needs to register itself so other entities can target it
             if ( !string.IsNullOrWhiteSpace(targetName) )
@@ -133,44 +186,71 @@ namespace Scopa {
         protected virtual void OnUpdate() { }
 
         protected void FireTarget() {
-            // normal target
-            if ( !string.IsNullOrWhiteSpace(targetTarget) && entityLookup.ContainsKey(targetTarget) ) 
+            protected void FireTarget()
             {
-                foreach( var targetEntity in entityLookup[targetTarget] ) 
+                // normal target
+                if (cachedTargets != null)
                 {
-                    targetEntity.TryActivate(this);
+                    foreach (var target in cachedTargets)
+                    {
+                        if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
+                        {
+                            foreach (var targetEntity in entityLookup[target])
+                            {
+                                targetEntity.TryActivate(this);
+                            }
+                        }
+                    }
+                }
+
+                if (cachedLockTargets != null)
+                {
+                    foreach (var target in cachedLockTargets)
+                    {
+                        // lock target
+                        if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
+                        {
+                            foreach (var targetEntity in entityLookup[target])
+                            {
+                                targetEntity.Lock();
+                            }
+                        }
+                    }
+                }
+
+                if (cachedUnlockTargets != null)
+                {
+                    // unlock target
+                    foreach (var target in cachedUnlockTargets)
+                    {
+                        // lock target
+                        if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
+                        {
+                            foreach (var targetEntity in entityLookup[target])
+                            {
+                                targetEntity.Unlock();
+                            }
+                        }
+                    }
+                }
+
+                if (cachedKillTargets != null)
+                {
+                    foreach (var target in cachedKillTargets)
+                    {
+                        // lock target
+                        if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
+                        {
+                            foreach (var targetEntity in entityLookup[target])
+                            {
+                                targetEntity.Kill();
+                            }
+                        }
+                    }
                 }
             }
 
-            // lock target
-            if ( !string.IsNullOrWhiteSpace(lockTarget) && entityLookup.ContainsKey(lockTarget) ) 
-            {
-                foreach( var targetEntity in entityLookup[lockTarget] ) 
-                {
-                    targetEntity.Lock();
-                }
-            }
-
-            // unlock target
-            if ( !string.IsNullOrWhiteSpace(unlockTarget) && entityLookup.ContainsKey(unlockTarget) ) 
-            {
-                foreach( var targetEntity in entityLookup[unlockTarget] ) 
-                {
-                    targetEntity.Unlock();
-                }
-            }
-
-            // kill target
-            if ( !string.IsNullOrWhiteSpace(killTarget) && entityLookup.ContainsKey(killTarget) ) 
-            {
-                foreach( var targetEntity in entityLookup[killTarget] ) 
-                {
-                    targetEntity.Kill();
-                }
-            }
-        }
-
-        public void Reset() {
+            public void Reset() {
             // notify everything about reset
             CacheTargetsIfNeeded();
             foreach( var target in allTargets ) 
