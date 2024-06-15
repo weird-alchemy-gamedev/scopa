@@ -8,7 +8,6 @@ using Color = UnityEngine.Color;
 
 namespace Scopa {
 
-    [System.Serializable]
     public class ScopaEntityData : Entity
     {
         [ReadOnly] public new string ClassName;
