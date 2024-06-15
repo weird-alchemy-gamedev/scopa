@@ -18,9 +18,11 @@ using Debug = UnityEngine.Debug;
 using UnityEditor;
 #endif
 
-namespace Scopa {
+namespace Scopa
+{
     /// <summary>main class for core Scopa MAP functions</summary>
-    public static class ScopaCore {
+    public static class ScopaCore
+    {
         // most mesh functions are in ScopaMesh, but we keep a small vert buffer here to generate Box Colliders
         static List<Vector3> faceVerts = new List<Vector3>(128);
 
@@ -31,7 +33,7 @@ namespace Scopa {
 
         static string mapName = "NEW_MAPFILE";
         static int entityCount = 0;
-        
+
         /// <summary>The main high-level map file import function. Use this to support mods. For editor-time import with asset handling, see ImportMapInEditor().</summary>
         public static GameObject ImportMap(string mapFilepath, ScopaMapConfig currentConfig, out List<ScopaMeshData> meshList)
         {
@@ -51,24 +53,26 @@ namespace Scopa {
         }
 
         /// <summary>Parses the map file text data into a usable data structure. Also detects the file extension and selects the appropriate file format handler.</summary>
-        public static MapFile ParseMap( string pathToMapFile, ScopaMapConfig config ) {
+        public static MapFile ParseMap(string pathToMapFile, ScopaMapConfig config)
+        {
             IMapFormat importer = null;
             var fileExtension = System.IO.Path.GetExtension(pathToMapFile).ToLowerInvariant();
-            switch(fileExtension) {
+            switch (fileExtension)
+            {
                 case ".map":
-                importer = new QuakeMapFormat(); break;
+                    importer = new QuakeMapFormat(); break;
                 case ".rmf":
-                importer = new WorldcraftRmfFormat(); break;
+                    importer = new WorldcraftRmfFormat(); break;
                 case ".vmf":
-                importer = new HammerVmfFormat(); break;
+                    importer = new HammerVmfFormat(); break;
                 case ".jmf":
-                importer = new JackhammerJmfFormat(); break;
+                    importer = new JackhammerJmfFormat(); break;
                 default:
-                Debug.LogError($"No file importer found for {pathToMapFile}");
-                return null;
+                    Debug.LogError($"No file importer found for {pathToMapFile}");
+                    return null;
             }
 
-            mapName = System.IO.Path.GetFileNameWithoutExtension( pathToMapFile );
+            mapName = System.IO.Path.GetFileNameWithoutExtension(pathToMapFile);
             entityCount = 0;
 
             MapFile mapFile = null;
@@ -82,7 +86,8 @@ namespace Scopa {
 
         /// <summary>The main function for converting parsed MapFile data into a Unity GameObject with 3D mesh and colliders.
         /// Outputs a lists of built meshes (e.g. so UnityEditor can serialize them)</summary>
-        public static GameObject BuildMapIntoGameObject(MapFile mapFile, ScopaMapConfig config, out List<ScopaMeshData> meshList) {
+        public static GameObject BuildMapIntoGameObject(MapFile mapFile, ScopaMapConfig config, out List<ScopaMeshData> meshList)
+        {
             var rootGameObject = new GameObject(mapName);
             var defaultMaterial = config.GetDefaultMaterial();
 
@@ -106,9 +111,10 @@ namespace Scopa {
             // var physicsScene = prefabScene.GetPhysicsScene();
 
             // originally this was where we baked AO, but this is now a generalized API that any ScopaMaterialConfig can touch
-            foreach ( var meshData in meshList ) {
+            foreach (var meshData in meshList)
+            {
                 // if the Transform is null, that means it's a collision mesh and we should ignore it
-                if ( meshData.transform != null && meshData.materialConfig != null && meshData.materialConfig.useOnPostBuildMeshObject) 
+                if (meshData.transform != null && meshData.materialConfig != null && meshData.materialConfig.useOnPostBuildMeshObject)
                     meshData.materialConfig.OnPostBuildMeshObject(meshData.transform.gameObject, meshData.mesh, meshData.entityData);
             }
 
@@ -133,17 +139,22 @@ namespace Scopa {
 
 
         /// <summary>Before generating game objects, we may want to modify some of the MapFile data. For example, when merging entities into worldspawn.</summary>
-        static void BuildMapPrepass( MapFile mapFile, ScopaMapConfig config ) {
-            PrepassEntityRecursive( mapFile.Worldspawn, mapFile.Worldspawn, config );
+        static void BuildMapPrepass(MapFile mapFile, ScopaMapConfig config)
+        {
+            PrepassEntityRecursive(mapFile.Worldspawn, mapFile.Worldspawn, config);
         }
 
         /// <summary>Core recursive function for traversing entity tree and pre-passing each entity</summary>
-        static void PrepassEntityRecursive( Worldspawn worldspawn, Entity ent, ScopaMapConfig config) {
-            for (int i=0; i<ent.Children.Count; i++) {
-                if ( ent.Children[i] is Entity ) {
-                    PrepassEntityRecursive( worldspawn, ent.Children[i] as Entity, config );
+        static void PrepassEntityRecursive(Worldspawn worldspawn, Entity ent, ScopaMapConfig config)
+        {
+            for (int i = 0; i < ent.Children.Count; i++)
+            {
+                if (ent.Children[i] is Entity)
+                {
+                    PrepassEntityRecursive(worldspawn, ent.Children[i] as Entity, config);
                 } // merge child brush to worldspawn
-                else if ( config.IsEntityMergeToWorld(ent.ClassName) && ent.Children[i] is Solid ) {
+                else if (config.IsEntityMergeToWorld(ent.ClassName) && ent.Children[i] is Solid)
+                {
                     mergedEntityData.Add(((Solid)ent.Children[i]), ent); // but preserve old entity data for mesh / collider generation
                     worldspawn.Children.Add(ent.Children[i]);
                     ent.Children.RemoveAt(i);
@@ -155,25 +166,30 @@ namespace Scopa {
         }
 
         /// <summary> The main core function for converting entities (worldspawn, func_, etc.) into 3D meshes. </summary>
-        static void AddGameObjectFromEntityRecursive(List<ScopaMeshData> meshList, GameObject rootGameObject, Entity rawEntityData, string namePrefix, Material defaultMaterial, ScopaMapConfig config ) {
-            AddGameObjectFromEntity(meshList, rootGameObject, new ScopaEntityData(rawEntityData, entityCount), namePrefix, defaultMaterial, config) ;
+        static void AddGameObjectFromEntityRecursive(List<ScopaMeshData> meshList, GameObject rootGameObject, Entity rawEntityData, string namePrefix, Material defaultMaterial, ScopaMapConfig config)
+        {
+            AddGameObjectFromEntity(meshList, rootGameObject, new ScopaEntityData(rawEntityData, entityCount), namePrefix, defaultMaterial, config);
             entityCount++;
 
-            foreach ( var child in rawEntityData.Children ) {
-                if ( child is Entity && config.IsEntityMergeToWorld(((Entity)child).ClassName) == false ) {
+            foreach (var child in rawEntityData.Children)
+            {
+                if (child is Entity && config.IsEntityMergeToWorld(((Entity)child).ClassName) == false)
+                {
                     AddGameObjectFromEntityRecursive(meshList, rootGameObject, child as Entity, namePrefix, defaultMaterial, config);
                 }
             }
         }
 
-        public static void AddGameObjectFromEntity(List<ScopaMeshData> meshList, GameObject rootGameObject, ScopaEntityData entData, string namePrefix, Material defaultMaterial, ScopaMapConfig config ) {
-            var solids = entData.Children.Where( x => x is Solid).Cast<Solid>();
+        public static void AddGameObjectFromEntity(List<ScopaMeshData> meshList, GameObject rootGameObject, ScopaEntityData entData, string namePrefix, Material defaultMaterial, ScopaMapConfig config)
+        {
+            var solids = entData.Children.Where(x => x is Solid).Cast<Solid>();
             ScopaMesh.ClearFaceCullingList();
 
             // for worldspawn, pivot point should be 0, 0, 0... else, see if origin is defined... otherwise, calculate min of bounds
             var calculateOrigin = entData.ClassName.ToLowerInvariant() != "worldspawn";
             var entityOrigin = calculateOrigin ? Vector3.one * 999999 : Vector3.zero;
-            if ( entData.TryGetVector3Unscaled("origin", out var newVec) ) {
+            if (entData.TryGetVector3Unscaled("origin", out var newVec))
+            {
                 entityOrigin = newVec;
                 calculateOrigin = false;
             }
@@ -183,23 +199,27 @@ namespace Scopa {
 
             // pass 1: gather all faces for occlusion checks later + build material list + cull any faces we're obviously not going to use
             var materialLookup = new Dictionary<string, ScopaMapConfig.MaterialOverride>();
-            foreach (var solid in solids) {
-                if( config.snappingThreshold > 0 ) {
+            foreach (var solid in solids)
+            {
+                if (config.snappingThreshold > 0)
+                {
                     ScopaMesh.SnapBrushVertices(solid, config.snappingThreshold);
                 }
 
-                foreach (var face in solid.Faces) {
-                    if ( face.Vertices == null || face.Vertices.Count == 0) // this shouldn't happen though
+                foreach (var face in solid.Faces)
+                {
+                    if (face.Vertices == null || face.Vertices.Count == 0) // this shouldn't happen though
                         continue;
 
                     // correct the face data for Unity space...
-                    for(int i=0; i<face.Vertices.Count; i++) {
+                    for (int i = 0; i < face.Vertices.Count; i++)
+                    {
                         face.Vertices[i] = new System.Numerics.Vector3(face.Vertices[i].X, face.Vertices[i].Z, face.Vertices[i].Y);
                     }
 
                     var plane = face.Plane;
                     face.Plane = new System.Numerics.Plane(new System.Numerics.Vector3(plane.Normal.X, plane.Normal.Z, plane.Normal.Y), plane.D);
-                    
+
                     var direction = ScopaMesh.GetMainAxisToNormal(face.Plane.Normal.ToUnity());
                     face.UAxis = direction == ScopaMesh.Axis.X ? System.Numerics.Vector3.UnitZ : System.Numerics.Vector3.UnitX;
                     face.VAxis = direction == ScopaMesh.Axis.Y ? -System.Numerics.Vector3.UnitZ : -System.Numerics.Vector3.UnitY;
@@ -213,17 +233,20 @@ namespace Scopa {
                     // Debug.DrawRay(center.ToUnity() * config.scalingFactor, face.Plane.Normal.ToUnity(), Color.yellow, 120f, false);
 
                     // skip tool textures and other objects?
-                    if ( config.IsTextureNameCulled(face.TextureName) ) {
+                    if (config.IsTextureNameCulled(face.TextureName))
+                    {
                         ScopaMesh.DiscardFace(face);
                         continue;
                     }
-                    
-                    if ( config.removeHiddenFaces )
+
+                    if (config.removeHiddenFaces)
                         ScopaMesh.AddFaceForCulling(face);
 
                     // start calculating min bounds, if needed
-                    if ( calculateOrigin ) {
-                        for(int i=0; i<face.Vertices.Count; i++) {
+                    if (calculateOrigin)
+                    {
+                        for (int i = 0; i < face.Vertices.Count; i++)
+                        {
                             entityOrigin.x = Mathf.Min(entityOrigin.x, face.Vertices[i].X);
                             entityOrigin.y = Mathf.Min(entityOrigin.y, face.Vertices[i].Y);
                             entityOrigin.z = Mathf.Min(entityOrigin.z, face.Vertices[i].Z);
@@ -231,42 +254,52 @@ namespace Scopa {
                     }
 
                     // match this face's texture name to a material
-                    if ( !materialLookup.ContainsKey(face.TextureName) ) {
+                    if (!materialLookup.ContainsKey(face.TextureName))
+                    {
                         Debug.Log($"Found unique texture name {face.TextureName}");
                         var newMaterial = defaultMaterial;
                         var materialOverride = config.GetMaterialOverrideFor(face.TextureName);
 
                         // look for custom user logic for face prepass
-                        if (materialOverride != null && materialOverride.materialConfig != null && materialOverride.materialConfig.useOnPrepassBrushFace) {
+                        if (materialOverride != null && materialOverride.materialConfig != null && materialOverride.materialConfig.useOnPrepassBrushFace)
+                        {
                             var maybeNewMaterial = materialOverride.materialConfig.OnPrepassBrushFace(solid, face, config, newMaterial);
-                            if (maybeNewMaterial == null) {
+                            if (maybeNewMaterial == null)
+                            {
                                 ScopaMesh.DiscardFace(face);
                                 continue;
-                            } else if (maybeNewMaterial != newMaterial) {
+                            }
+                            else if (maybeNewMaterial != newMaterial)
+                            {
                                 newMaterial = maybeNewMaterial;
                                 materialOverride = null;
                             }
                         }
-                        
+
                         // if still no better material found, then search the AssetDatabase for a matching texture name
-                        if ( config.findMaterials && materialOverride == null && materials.Count > 0 && materials.ContainsKey(face.TextureName) ) {
+                        if (config.findMaterials && materialOverride == null && materials.Count > 0 && materials.ContainsKey(face.TextureName))
+                        {
                             Debug.Log($"Grabbed cached material for {face.TextureName}");
                             newMaterial = materials[face.TextureName];
                         }
 
                         // if a material override wasn't found, generate one
-                        if ( materialOverride == null ) {
-                            if ( newMaterial == null)
+                        if (materialOverride == null)
+                        {
+                            if (newMaterial == null)
                                 Debug.Log(face.TextureName + " This shouldn't be null!");
                             materialOverride = new ScopaMapConfig.MaterialOverride(face.TextureName, newMaterial);
                         }
 
                         // temporarily merge entries with the same Material by renaming the face's texture name
-                        var matchingKey = materialLookup.Where( kvp => kvp.Value.material == materialOverride.material && kvp.Value.materialConfig == materialOverride.materialConfig).FirstOrDefault().Key;
-                        if ( !string.IsNullOrEmpty(matchingKey) ) {
+                        var matchingKey = materialLookup.Where(kvp => kvp.Value.material == materialOverride.material && kvp.Value.materialConfig == materialOverride.materialConfig).FirstOrDefault().Key;
+                        if (!string.IsNullOrEmpty(matchingKey))
+                        {
                             face.TextureName = matchingKey;
-                        } else { // otherwise add to lookup
-                            materialLookup.Add( face.TextureName, materialOverride );
+                        }
+                        else
+                        { // otherwise add to lookup
+                            materialLookup.Add(face.TextureName, materialOverride);
                         }
                     }
                 }
@@ -274,12 +307,14 @@ namespace Scopa {
 
             // pass 1B: use jobs to cull additional faces
             ScopaMesh.FaceCullingJobGroup faceCullingJob = null;
-            if ( config.removeHiddenFaces ) {
+            if (config.removeHiddenFaces)
+            {
                 faceCullingJob = ScopaMesh.StartFaceCullingJobs();
             }
 
             entityOrigin *= config.scalingFactor;
-            if ( entData.TryGetVector3Scaled("origin", out var pos, config.scalingFactor) ) {
+            if (entData.TryGetVector3Scaled("origin", out var pos, config.scalingFactor))
+            {
                 entityOrigin = pos;
             }
 
@@ -288,25 +323,29 @@ namespace Scopa {
             var entityPrefab = config.GetEntityPrefabFor(entData.ClassName);
             var meshPrefab = config.GetMeshPrefabFor(entData.ClassName);
 
-            GameObject entityObject = null; 
-            if ( entityPrefab != null ) {
-                #if UNITY_EDITOR
+            GameObject entityObject = null;
+            if (entityPrefab != null)
+            {
+#if UNITY_EDITOR
                 entityObject = UnityEditor.PrefabUtility.InstantiatePrefab(entityPrefab) as GameObject; // maintain prefab linkage
-                #else
+#else
                 entityObject = Instantiate(entityPrefab);
-                #endif
-            } else {
+#endif
+            }
+            else
+            {
                 entityObject = new GameObject();
             }
 
             entityObject.name = $"{entData.ClassName}#{entData.ID}";
-            if ( entData.TryGetString("targetname", out var targetName) )
+            if (entData.TryGetString("targetname", out var targetName))
                 entityObject.name += " " + targetName;
             entityObject.transform.position = entityOrigin;
             // for point entities, import the "angle" property
             entityObject.transform.localRotation = Quaternion.identity;
-            if ( materialLookup.Count == 0 ) { // if there's no meshes and it's a point entity, then it has angles
-                if ( entData.TryGetAngles3D("angles", out var angles) )
+            if (materialLookup.Count == 0)
+            { // if there's no meshes and it's a point entity, then it has angles
+                if (entData.TryGetAngles3D("angles", out var angles))
                     entityObject.transform.localRotation = angles;
                 else if (entData.TryGetAngleSingle("angle", out var angle))
                     entityObject.transform.localRotation = angle;
@@ -316,15 +355,16 @@ namespace Scopa {
 
             // begin collision jobs
             ScopaMesh.ColliderJobGroup colliderJob = null;
-            if ( config.colliderMode != ScopaMapConfig.ColliderImportMode.None && entityNeedsCollider ) {
+            if (config.colliderMode != ScopaMapConfig.ColliderImportMode.None && entityNeedsCollider)
+            {
                 bool isTrigger = config.IsEntityTrigger(entData.ClassName);
                 bool forceConvex = entData.TryGetInt("_convex", out var num) && num == 1;
                 colliderJob = new ScopaMesh.ColliderJobGroup(
-                    entityObject, 
-                    isTrigger, 
+                    entityObject,
+                    isTrigger,
                     forceConvex,
-                    entityObject.name + "_Collider{0}", 
-                    solids, 
+                    entityObject.name + "_Collider{0}",
+                    solids,
                     config,
                     mergedEntityData
                 );
@@ -333,17 +373,19 @@ namespace Scopa {
             // populate the rest of the entity data    
             var entityComponent = entityObject.GetComponent<IScopaEntityData>();
 
-            if ( config.addScopaEntityComponent && entityComponent == null)
+            if (config.addScopaEntityComponent && entityComponent == null)
                 entityComponent = entityObject.AddComponent<ScopaEntity>();
 
-            if ( entityComponent != null)
+            if (entityComponent != null)
                 entityComponent.entityData = entData;
 
             // only set Layer if it's a generic game object OR if there's a layer override
-            if ( entData.TryGetString("_layer", out var layerName) ) {
+            if (entData.TryGetString("_layer", out var layerName))
+            {
                 entityObject.layer = LayerMask.NameToLayer(layerName);
             }
-            else if ( entityPrefab == null) { 
+            else if (entityPrefab == null)
+            {
                 entityObject.layer = config.layer;
             }
 
@@ -353,9 +395,10 @@ namespace Scopa {
             faceCullingJob = null;
 
             // main loop: for each material, build a mesh and add a game object with mesh components
-            foreach ( var textureKVP in materialLookup ) {
+            foreach (var textureKVP in materialLookup)
+            {
                 // ScopaMesh.ClearMeshBuffers();
-                
+
                 // foreach ( var solid in solids) {
                 //     ScopaMesh.BufferMeshDataFromSolid( solid, config, textureKVP.Value, false);
                 // }
@@ -364,31 +407,35 @@ namespace Scopa {
                 //     continue;
 
                 var meshBuildJob = new ScopaMesh.MeshBuildingJobGroup(
-                    $"{namePrefix}-{entityObject.name}-{textureKVP.Key}", 
+                    $"{namePrefix}-{entityObject.name}-{textureKVP.Key}",
                     entityOrigin,
                     solids,
                     // faceList[textureKVP.Value],
-                    config, 
-                    textureKVP.Value, 
+                    config,
+                    textureKVP.Value,
                     false
                 );
-                
+
                 // finally, add mesh as game object, while we still have all the entity information
                 GameObject newMeshObj = null;
                 var thisMeshPrefab = meshPrefab;
 
                 // the material config might have a meshPrefab defined too; use that if there isn't already a meshPrefab set already
-                if ( meshPrefab == null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.meshPrefab != null ) {
+                if (meshPrefab == null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.meshPrefab != null)
+                {
                     thisMeshPrefab = textureKVP.Value.materialConfig.meshPrefab;
                 }
 
-                if ( thisMeshPrefab != null ) {
-                    #if UNITY_EDITOR
+                if (thisMeshPrefab != null)
+                {
+#if UNITY_EDITOR
                     newMeshObj = UnityEditor.PrefabUtility.InstantiatePrefab(thisMeshPrefab) as GameObject; // maintain prefab linkage
-                    #else
+#else
                     newMeshObj = Instantiate(thisMeshPrefab);
-                    #endif
-                } else {
+#endif
+                }
+                else
+                {
                     newMeshObj = new GameObject();
                 }
 
@@ -400,27 +447,37 @@ namespace Scopa {
 
                 // if user set a specific prefab, it probably has its own static flags and layer
                 // ... but if it's a generic game object we made, then we set it ourselves
-                if ( !string.IsNullOrEmpty(layerName) ) { // or did they set a specifc override on this entity?
+                if (!string.IsNullOrEmpty(layerName))
+                { // or did they set a specifc override on this entity?
                     entityObject.layer = LayerMask.NameToLayer(layerName);
-                } else if ( thisMeshPrefab == null ) { 
+                }
+                else if (thisMeshPrefab == null)
+                {
                     newMeshObj.layer = config.layer;
                 }
-
+#if UNITY_EDITOR
                 if ( thisMeshPrefab == null && config.IsEntityStatic(entData.ClassName)) {
                     SetGameObjectStatic(newMeshObj, entityNeedsCollider && !entityIsTrigger);
                 }
-
+#endif
                 // detect smoothing angle, if defined via map config or material config or entity
                 var smoothNormalAngle = config.defaultSmoothingAngle;
-                if (entData.TryGetBool("_phong", out var phong)) {
-                    if ( phong ) {
-                        if ( entData.TryGetFloat("_phong_angle", out var phongAngle) ) {
-                            smoothNormalAngle = Mathf.RoundToInt( phongAngle );
+                if (entData.TryGetBool("_phong", out var phong))
+                {
+                    if (phong)
+                    {
+                        if (entData.TryGetFloat("_phong_angle", out var phongAngle))
+                        {
+                            smoothNormalAngle = Mathf.RoundToInt(phongAngle);
                         }
-                    } else {
+                    }
+                    else
+                    {
                         smoothNormalAngle = -1;
                     }
-                } else if ( textureKVP.Value != null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.smoothingAngle >= 0 ) {
+                }
+                else if (textureKVP.Value != null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.smoothingAngle >= 0)
+                {
                     smoothNormalAngle = textureKVP.Value.materialConfig.smoothingAngle;
                 }
 
@@ -431,109 +488,121 @@ namespace Scopa {
                 //     smoothNormalAngle
                 // );
                 var newMesh = meshBuildJob.Complete();
-                meshList.Add( new ScopaMeshData(newMesh, entData, textureKVP.Value.materialConfig, newMeshObj.transform) );
+                meshList.Add(new ScopaMeshData(newMesh, entData, textureKVP.Value.materialConfig, newMeshObj.transform));
                 meshBuildJob = null;
 
                 // you can inherit ScopaMaterialConfig + override OnBuildMeshObject for extra per-material import logic
-                if ( textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.useOnBuildMeshObject ) {
-                    textureKVP.Value.materialConfig.OnBuildMeshObject( newMeshObj, newMesh );
+                if (textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.useOnBuildMeshObject)
+                {
+                    textureKVP.Value.materialConfig.OnBuildMeshObject(newMeshObj, newMesh);
                 }
 
                 // populate components... if the mesh components aren't there, then add them
-                if ( newMeshObj.TryGetComponent<MeshFilter>(out var meshFilter) == false ) {
+                if (newMeshObj.TryGetComponent<MeshFilter>(out var meshFilter) == false)
+                {
                     meshFilter = newMeshObj.AddComponent<MeshFilter>();
                 }
                 meshFilter.sharedMesh = newMesh;
 
                 bool addedMeshRenderer = false;
-                if ( newMeshObj.TryGetComponent<MeshRenderer>(out var meshRenderer) == false ) {
+                if (newMeshObj.TryGetComponent<MeshRenderer>(out var meshRenderer) == false)
+                {
                     meshRenderer = newMeshObj.AddComponent<MeshRenderer>();
                     addedMeshRenderer = true;
                 }
                 meshRenderer.sharedMaterial = textureKVP.Value.material;
 
-                if ( addedMeshRenderer ) { // if we added a generic mesh renderer, then set default shadow caster setting too
+                if (addedMeshRenderer)
+                { // if we added a generic mesh renderer, then set default shadow caster setting too
                     meshRenderer.shadowCastingMode = config.castShadows;
                 }
             }
 
-            if (colliderJob != null) {
+            if (colliderJob != null)
+            {
                 var collisionMeshes = colliderJob.Complete();
-                foreach ( var cMesh in collisionMeshes ) {
-                    meshList.Add( new ScopaMeshData(cMesh) ); // collision meshes have their KVP Value's Transform set to null, so that Vertex Color AO bake knows to ignore them
+                foreach (var cMesh in collisionMeshes)
+                {
+                    meshList.Add(new ScopaMeshData(cMesh)); // collision meshes have their KVP Value's Transform set to null, so that Vertex Color AO bake knows to ignore them
                 }
                 colliderJob = null;
             }
 
             // now that we've finished building the gameobject, notify any custom user components that import is complete
             var allEntityComponents = entityObject.GetComponentsInChildren<IScopaEntityImport>();
-            foreach( var entComp in allEntityComponents ) { 
-                if ( !entComp.IsImportEnabled() )
+            foreach (var entComp in allEntityComponents)
+            {
+                if (!entComp.IsImportEnabled())
                     continue;
 
                 // scan for any FGD attribute and update accordingly
                 FieldInfo[] objectFields = entComp.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
-                for (int i = 0; i < objectFields.Length; i++) {
+                for (int i = 0; i < objectFields.Length; i++)
+                {
                     var attribute = Attribute.GetCustomAttribute(objectFields[i], typeof(BindFgd)) as BindFgd;
-                    if (attribute != null) {
-                        switch( attribute.propertyType ) {
+                    if (attribute != null)
+                    {
+                        switch (attribute.propertyType)
+                        {
                             case BindFgd.VarType.String:
-                                if ( entData.TryGetString(attribute.propertyKey, out var stringProp) )
+                                if (entData.TryGetString(attribute.propertyKey, out var stringProp))
                                     objectFields[i].SetValue(entComp, stringProp);
                                 break;
                             case BindFgd.VarType.Bool:
-                                if ( entData.TryGetBool(attribute.propertyKey, out var boolValue) )
+                                if (entData.TryGetBool(attribute.propertyKey, out var boolValue))
                                     objectFields[i].SetValue(entComp, boolValue);
                                 break;
                             case BindFgd.VarType.Int:
-                                if ( entData.TryGetInt(attribute.propertyKey, out var intProp) )
+                                if (entData.TryGetInt(attribute.propertyKey, out var intProp))
                                     objectFields[i].SetValue(entComp, intProp);
                                 break;
                             case BindFgd.VarType.IntScaled:
-                                if ( entData.TryGetIntScaled(attribute.propertyKey, out var intScaledProp, config.scalingFactor) )
+                                if (entData.TryGetIntScaled(attribute.propertyKey, out var intScaledProp, config.scalingFactor))
                                     objectFields[i].SetValue(entComp, intScaledProp);
                                 break;
                             case BindFgd.VarType.Float:
-                                if ( entData.TryGetFloat(attribute.propertyKey, out var floatProp) )
+                                if (entData.TryGetFloat(attribute.propertyKey, out var floatProp))
                                     objectFields[i].SetValue(entComp, floatProp);
                                 break;
                             case BindFgd.VarType.FloatScaled:
-                                if ( entData.TryGetFloatScaled(attribute.propertyKey, out var floatScaledProp, config.scalingFactor) )
+                                if (entData.TryGetFloatScaled(attribute.propertyKey, out var floatScaledProp, config.scalingFactor))
                                     objectFields[i].SetValue(entComp, floatScaledProp);
                                 break;
                             case BindFgd.VarType.Vector3Scaled:
-                                if ( entData.TryGetVector3Scaled(attribute.propertyKey, out var vec3Scaled, config.scalingFactor) )
+                                if (entData.TryGetVector3Scaled(attribute.propertyKey, out var vec3Scaled, config.scalingFactor))
                                     objectFields[i].SetValue(entComp, vec3Scaled);
                                 break;
                             case BindFgd.VarType.Vector3Unscaled:
-                                if ( entData.TryGetVector3Unscaled(attribute.propertyKey, out var vec3Unscaled) )
+                                if (entData.TryGetVector3Unscaled(attribute.propertyKey, out var vec3Unscaled))
                                     objectFields[i].SetValue(entComp, vec3Unscaled);
                                 break;
                             case BindFgd.VarType.Angles3D:
-                                if ( entData.TryGetAngles3D(attribute.propertyKey, out var angle3D) )
+                                if (entData.TryGetAngles3D(attribute.propertyKey, out var angle3D))
                                     objectFields[i].SetValue(entComp, angle3D.eulerAngles);
                                 break;
                             default:
-                                Debug.LogError( $"BindFgd named {objectFields[i].Name} / {attribute.propertyKey} has FGD var type {attribute.propertyType} ... but no case handler for it yet!");
+                                Debug.LogError($"BindFgd named {objectFields[i].Name} / {attribute.propertyKey} has FGD var type {attribute.propertyType} ... but no case handler for it yet!");
                                 break;
                         }
                     }
                 }
 
-                if ( config.callOnEntityImport )
-                    entComp.OnEntityImport( entData );
+                if (config.callOnEntityImport)
+                    entComp.OnEntityImport(entData);
             }
         }
 
-        static GameObject Instantiate(GameObject prefab) {
+        static GameObject Instantiate(GameObject prefab)
+        {
             // using InstantiatePrefab didn't actually help, since the instance still doesn't auto-update and requires manual reimport anyway
             // #if UNITY_EDITOR
             //     return PrefabUtility.InstantiatePrefab(prefab) as GameObject;
             // #else
-                return UnityEngine.Object.Instantiate(prefab);
+            return UnityEngine.Object.Instantiate(prefab);
             // #endif
         }
 
+#if UNITY_EDITOR
         static void SetGameObjectStatic(GameObject go, bool isNavigationStatic = true) {
             if ( isNavigationStatic ) {
                 go.isStatic = true;
@@ -547,7 +616,7 @@ namespace Scopa {
                 );
             }
         }
-
+#endif
         /// <summary> for each solid in an Entity, add either a Box Collider or a Mesh Collider component... or make one big merged Mesh Collider </summary>
         // public static List<Mesh> AddColliders(GameObject gameObject, ScopaEntityData ent, ScopaMapConfig config, string namePrefix, bool forceBoxCollidersForAll = false) {
         //     var meshList = new List<Mesh>();
@@ -641,7 +710,7 @@ namespace Scopa {
         //     ScopaMesh.ClearMeshBuffers();
         //     ScopaMesh.BufferMeshDataFromSolid(solid, config, null, true);
         //     var newMesh = ScopaMesh.BuildMeshFromBuffers( colliderName + "Collider", config, gameObject.transform.position, -1);
-        
+
         //     var newGO = new GameObject("MeshColliderConvex " + colliderName );
         //     newGO.transform.SetParent( gameObject.transform );
         //     newGO.transform.localPosition = Vector3.zero;
@@ -655,14 +724,18 @@ namespace Scopa {
         //     //     | MeshColliderCookingOptions.UseFastMidphase;
         //     newMeshCollider.isTrigger = isTrigger;
         //     newMeshCollider.sharedMesh = newMesh;
-            
+
         //     return newMesh;
         // }
 
-        static float Frac(float decimalNumber) {
-            if ( Mathf.Round(decimalNumber) > decimalNumber ) {
+        static float Frac(float decimalNumber)
+        {
+            if (Mathf.Round(decimalNumber) > decimalNumber)
+            {
                 return (Mathf.Ceil(decimalNumber) - decimalNumber);
-            } else {
+            }
+            else
+            {
                 return (decimalNumber - Mathf.Floor(decimalNumber));
             }
         }
@@ -674,17 +747,20 @@ namespace Scopa {
 
     }
 
-    public class ScopaMeshData {
+    public class ScopaMeshData
+    {
         public Mesh mesh;
         public ScopaEntityData entityData;
         public ScopaMaterialConfig materialConfig;
         public Transform transform;
 
-        public ScopaMeshData(Mesh mesh) {
+        public ScopaMeshData(Mesh mesh)
+        {
             this.mesh = mesh;
         }
 
-        public ScopaMeshData(Mesh mesh, ScopaEntityData entityData, ScopaMaterialConfig materialConfig, Transform transform) {
+        public ScopaMeshData(Mesh mesh, ScopaEntityData entityData, ScopaMaterialConfig materialConfig, Transform transform)
+        {
             this.mesh = mesh;
             this.entityData = entityData;
             this.materialConfig = materialConfig;
