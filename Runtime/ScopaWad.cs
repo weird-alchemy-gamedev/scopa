@@ -113,7 +113,8 @@ namespace Scopa {
             // TODO: URP, HDRP
             Material material;
 
-            if ( config.opaqueTemplate != null ) {
+            if ( config.opaqueTemplate !
+                ) {
                 material = new Material(config.opaqueTemplate);
             }
             else {

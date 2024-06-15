@@ -4,7 +4,8 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Scopa {
+namespace Scopa
+{
     /// <summary> 
     /// General container to hold entity data, and coordinate targeting / input flow across multiple components.
     /// To configure your custom components with entity data, you have three options:
@@ -15,8 +16,6 @@ namespace Scopa {
     [SelectionBase]
     public class ScopaEntity : MonoBehaviour, IScopaEntityLogic, IScopaEntityData, IScopaEntityImport
     {
-
-
         #region Entity Logic
 
         /// <summary>
@@ -29,17 +28,17 @@ namespace Scopa {
 
         /// <summary> The name of this entity, for map triggering purposes.</summary>
         [Tooltip("The name of this entity, so other entities can target it.")]
-        [BindFgd("targetname", BindFgd.VarType.String, "Name")] 
+        [BindFgd("targetname", BindFgd.VarType.String, "Name")]
         public string entityName;
 
         /// <summary> When this entity activates, then also activate this entity(s).</summary>
         [Tooltip("When this entity activates, then also activate this entity(s) by name.")]
-        [BindFgd("target", BindFgd.VarType.String, "Target")] 
+        [BindFgd("target", BindFgd.VarType.String, "Target")]
         public string entityTarget;
 
         /// <summary> When this entity activates, the seconds before it fires its target(s). </summary>
         [Tooltip("When this entity activates, the seconds before it fires its target.")]
-        [BindFgd("delay", BindFgd.VarType.Float, "Delay Before Target")] 
+        [BindFgd("delay", BindFgd.VarType.Float, "Delay Before Target")]
         public float activationDelay = 0f;
 
         /// <summary> internal timer for when to activate target(s), based on delay </summary>
@@ -47,21 +46,21 @@ namespace Scopa {
         protected ScopaEntity lastActivator;
 
         /// <summary> to be able to activate, there must be no activation or resetting in progress AND the entity must be unlocked </summary>
-        public bool canActivate { get { return targetDelayRemaining <= 0 && resetDelayRemaining <= 0 && !isLocked; }}
+        public bool canActivate { get { return targetDelayRemaining <= 0 && !isLocked; } }
 
         /// <summary> When this entity activates, then also LOCK this entity(s).</summary>
         [Tooltip("When this entity activates, then also LOCK this entity(s) by name.")]
-        [BindFgd("locktarget", BindFgd.VarType.String, "Lock Target")] 
+        [BindFgd("locktarget", BindFgd.VarType.String, "Lock Target")]
         public string lockTarget;
 
         /// <summary> When this entity activates, then also UNLOCK this entity(s).</summary>
         [Tooltip("When this entity activates, then also UNLOCK this entity(s) by name.")]
-        [BindFgd("unlocktarget", BindFgd.VarType.String, "Unlock Target")] 
+        [BindFgd("unlocktarget", BindFgd.VarType.String, "Unlock Target")]
         public string unlockTarget;
 
         /// <summary> When this entity activates, then kill / DESTROY this entity(s).</summary>
         [Tooltip("When this entity activates, then also kill / DESTROY this entity(s) by name.")]
-        [BindFgd("killtarget", BindFgd.VarType.String, "Kill / Destroy Target")] 
+        [BindFgd("killtarget", BindFgd.VarType.String, "Kill / Destroy Target")]
         public string killTarget;
 
         /// <summary> After this entity activates, the seconds to wait before reseting itself. -1 = never reset. </summary>
@@ -82,12 +81,12 @@ namespace Scopa {
         public bool cacheChildrenForDispatch = true;
         IScopaEntityLogic[] allTargets;
 
-        List<string> _cachedTargets;
+        List<string> _cachedTargets = null;
         List<string> cachedTargets
         {
             get
-            { 
-                if (_cachedTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+            {
+                if ((_cachedTargets == null || _cachedTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
                 {
                     _cachedTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
@@ -95,40 +94,40 @@ namespace Scopa {
             }
         }
 
-        List<string> _cachedLockTargets;
+        List<string> _cachedLockTargets = null;
         List<string> cachedLockTargets
         {
             get
             {
-                if (_cachedLockTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+                if ((_cachedLockTargets == null || _cachedLockTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
                 {
-                    _cachedLockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
+                    _cachedLockTargets = lockTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
                 return _cachedLockTargets;
             }
         }
 
-        List<string> _cachedUnlockTargets;
+        List<string> _cachedUnlockTargets = null;
         List<string> cachedUnlockTargets
         {
             get
             {
-                if (_cachedUnlockTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+                if ((_cachedUnlockTargets == null || _cachedUnlockTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
                 {
-                    _cachedUnlockTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
+                    _cachedUnlockTargets = unlockTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
                 return _cachedUnlockTargets;
             }
         }
 
-        List<string> _cachedKillTargets;
+        List<string> _cachedKillTargets = null;
         List<string> cachedKillTargets
         {
             get
             {
-                if (_cachedKillTargets == null && !string.IsNullOrWhiteSpace(entityTarget))
+                if ((_cachedKillTargets == null || _cachedKillTargets.Count == 0) && !string.IsNullOrWhiteSpace(entityTarget))
                 {
-                    _cachedKillTargets = entityTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
+                    _cachedKillTargets = killTarget.Split(TARGET_LIST_CHAR).Select(x => SanitizeString(x)).ToList();
                 }
                 return _cachedKillTargets;
             }
@@ -139,17 +138,25 @@ namespace Scopa {
             return input.Trim().Normalize();
         }
 
-        protected void Awake() {
+        private static bool generateEntityLookup = true;
+        protected void Awake()
+        {
             // if this entity has a entityName, it needs to register itself so other entities can target it
             if (Application.isPlaying && !string.IsNullOrWhiteSpace(entityName))
-            { 
+            {
+                if (generateEntityLookup)
+                {
+                    entityLookup = new();
+                    generateEntityLookup = false;
+                }
+
                 if (!entityLookup.ContainsKey(entityName))
                 {
                     entityLookup.Add(entityName, new List<ScopaEntity>());
                 }
 
                 if (!entityLookup[entityName].Contains(this))
-                { 
+                {
                     entityLookup[entityName].Add(this);
                 }
             }
@@ -157,24 +164,25 @@ namespace Scopa {
             OnAwake();
         }
 
-        protected virtual void OnAwake() {}
+        protected virtual void OnAwake() { }
 
-        protected void Update() {
+        protected void Update()
+        {
             // target timer
-            if ( targetDelayRemaining >= 0 && !isLocked ) 
+            if (targetDelayRemaining >= 0 && !isLocked)
             {
                 targetDelayRemaining -= Time.deltaTime;
-                if ( canActivate ) 
+                if (canActivate)
                 {
                     Activate();
                     FireTarget();
                 }
             } // reset cooldown timer
-            else if ( resetDelayRemaining > 0 && waitReset >= 0 && !isLocked) 
+            else if (resetDelayRemaining > 0 && waitReset >= 0 && !isLocked)
             {
                 resetDelayRemaining -= Time.deltaTime;
-                if ( resetDelayRemaining <= 0 )
-                { 
+                if (resetDelayRemaining <= 0)
+                {
                     Reset();
                 }
             }
@@ -184,62 +192,75 @@ namespace Scopa {
 
         protected virtual void OnUpdate() { }
 
-        protected void FireTarget() 
+        protected void FireTarget()
         {
             // normal target
-            foreach (var target in cachedTargets)
-            { 
-                if ( !string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target) ) 
+            if (cachedTargets != null)
+            {
+                foreach (var target in cachedTargets)
                 {
-                    foreach( var targetEntity in entityLookup[target] ) 
+                    if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
                     {
-                        targetEntity.TryActivate(this);
+                        foreach (var targetEntity in entityLookup[target])
+                        {
+                            targetEntity.TryActivate(this);
+                        }
                     }
                 }
             }
 
-            foreach (var target in cachedLockTargets)
+            if (cachedLockTargets != null)
             {
-                // lock target
-                if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
+                foreach (var target in cachedLockTargets)
                 {
-                    foreach (var targetEntity in entityLookup[target])
+                    // lock target
+                    if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
                     {
-                        targetEntity.Lock();
+                        foreach (var targetEntity in entityLookup[target])
+                        {
+                            targetEntity.Lock();
+                        }
                     }
                 }
             }
 
-            // unlock target
-            foreach (var target in cachedUnlockTargets)
+            if (cachedUnlockTargets != null)
             {
-                // lock target
-                if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
+                // unlock target
+                foreach (var target in cachedUnlockTargets)
                 {
-                    foreach (var targetEntity in entityLookup[target])
+                    // lock target
+                    if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
                     {
-                        targetEntity.Unlock();
+                        foreach (var targetEntity in entityLookup[target])
+                        {
+                            targetEntity.Unlock();
+                        }
                     }
                 }
             }
 
-            foreach (var target in cachedKillTargets)
+            if (cachedKillTargets != null)
             {
-                // lock target
-                if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
+                foreach (var target in cachedKillTargets)
                 {
-                    foreach (var targetEntity in entityLookup[target])
+                    // lock target
+                    if (!string.IsNullOrWhiteSpace(target) && entityLookup.ContainsKey(target))
                     {
-                        targetEntity.Lock();
+                        foreach (var targetEntity in entityLookup[target])
+                        {
+                            targetEntity.Kill();
+                        }
                     }
                 }
             }
         }
 
-        public void Reset() {
+        public void Reset()
+        {
             // notify everything about reset
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) 
+            foreach (var target in allTargets)
             {
                 target.OnEntityReset();
             }
@@ -251,69 +272,69 @@ namespace Scopa {
         /// returns false if entity (a) is already activating, or (b) hasn't reset yet, or (c) is locked. 
         /// Pass in 'force = true' to ignore these checks and force activation. 
         /// Note that 'activator' might be null. </summary>
-        public bool TryActivate(ScopaEntity activator, bool force = false) 
+        public bool TryActivate(ScopaEntity activator, bool force = false)
         {
-            if ( !canActivate && !force ) return false;
+            if (!canActivate && !force) return false;
 
             lastActivator = activator;
             targetDelayRemaining = activationDelay;
-            resetDelayRemaining = waitReset + 0.001f; // add small reset delay to ensure 1 frame between activations
+            //resetDelayRemaining = waitReset + 0.001f; // add small reset delay to ensure 1 frame between activations
             Activate();
             return true;
         }
 
-        public void TryActivate(bool force = false) 
+        public void TryActivate(bool force = false)
         {
             TryActivate(null, force);
         }
-        
-        protected void CacheTargetsIfNeeded() 
+
+        protected void CacheTargetsIfNeeded()
         {
             // ignore costly GetComponentsInChildren call
-            if ( cacheChildrenForDispatch && allTargets != null ) return;
-            
+            if (cacheChildrenForDispatch && allTargets != null) return;
+
             allTargets = GetComponentsInChildren<IScopaEntityLogic>();
         }
 
-        public void Activate() 
+        public void Activate()
         {
-            Debug.Log(gameObject.name + " is activating!");
+            //Debug.Log(gameObject.name + " is activating!");
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) 
+            foreach (var target in allTargets)
             {
                 target.OnEntityActivate(lastActivator);
             }
         }
 
-        public void Lock() 
+        public void Lock()
         {
             isLocked = true;
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) 
+            foreach (var target in allTargets)
             {
                 target.OnEntityLocked();
             }
         }
 
-        public void Unlock() 
+        public void Unlock()
         {
             isLocked = false;
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) 
+            foreach (var target in allTargets)
             {
                 target.OnEntityUnlocked();
             }
         }
 
-        public void Kill() 
+        public void Kill()
         {
             CacheTargetsIfNeeded();
-            foreach( var target in allTargets ) 
+            foreach (var target in allTargets)
             {
                 target.OnEntityKilled();
             }
             entityLookup[entityName].Remove(this);
-            Destroy( this.gameObject );
+            Destroy(this.gameObject);
         }
 
         #endregion
@@ -321,9 +342,11 @@ namespace Scopa {
         #region EntityData
 
         [SerializeField] ScopaEntityData _entityData;
-        public ScopaEntityData entityData {
+        public ScopaEntityData entityData
+        {
             get => _entityData;
-            set {
+            set
+            {
                 _entityData = value;
             }
         }
@@ -378,7 +401,7 @@ namespace Scopa {
 
         /// <summary> parses property as an RGB Color (0-255) with a fourth number as light intensity scalar (255 = 1.0f), common as the Half-Life 1 GoldSrc / Half-Life 2 Source light color format (e.g. "255 255 255 200"); empty or whitespace will return false and Color.black and intensity 0.0</summary>
         public bool TryGetColorLight(string propertyKey, out Color color, out float intensity) => entityData.TryGetColorLight(propertyKey, out color, out intensity);
-        
+
         /// <summary> returns a string of all entity data, including all properties and keyvalue pairs</summary>
         public override string ToString() => entityData.ToString();
 
