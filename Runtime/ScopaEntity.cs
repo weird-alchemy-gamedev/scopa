@@ -134,10 +134,16 @@ namespace Scopa
             return inString.Trim().Normalize();
         }
 
-        static Queue<ScopaEntity> targetQueue = new();
-        static Queue<ScopaEntity> lockQueue = new();
-        static Queue<ScopaEntity> unlockQueue = new();
-        static Queue<ScopaEntity> killQueue = new();
+        public class ActivatorPair
+        {
+            public ScopaEntity Activator;
+            public ScopaEntity Target;
+        }
+
+        static Queue<ActivatorPair> targetQueue = new();
+        static Queue<ActivatorPair> lockQueue = new();
+        static Queue<ActivatorPair> unlockQueue = new();
+        static Queue<ActivatorPair> killQueue = new();
 
 
         public static bool hasSetupEntityLookup = false;
@@ -165,13 +171,13 @@ namespace Scopa
 
         protected virtual void OnAwake() { }
 
-        protected void FixedUpdate()
+        void FixedUpdate()
         {
             ProcessQueues();
             OnFixedUpdate();
         }
 
-        protected void Update()
+        void Update()
         {
             OnUpdate();
         }
@@ -182,24 +188,25 @@ namespace Scopa
         
         protected void ProcessQueues()
         {
-            while (targetQueue.TryDequeue(out ScopaEntity entity))
+            while (targetQueue.TryDequeue(out ActivatorPair activatorPair))
             {
-                entity.Activate();
+                var target = activatorPair.Target;
+                target.Activate(activatorPair.Activator);
             }
 
-            while (lockQueue.TryDequeue(out ScopaEntity entity))
+            while (lockQueue.TryDequeue(out ActivatorPair activatorPair))
             {
-                entity.Lock();
+                activatorPair.Target.Lock();
             }
 
-            while (unlockQueue.TryDequeue(out ScopaEntity entity))
+            while (unlockQueue.TryDequeue(out ActivatorPair activatorPair))
             {
-                entity.Unlock();
+                activatorPair.Target.Unlock();
             }
 
-            while (killQueue.TryDequeue(out ScopaEntity entity))
+            while (killQueue.TryDequeue(out ActivatorPair activatorPair))
             {
-                entity.Kill();
+                activatorPair.Target.Kill();
             }
         }
 
@@ -214,7 +221,10 @@ namespace Scopa
                     {
                         foreach (var targetEntity in entityLookup[target])
                         {
-                            targetQueue.Enqueue(targetEntity);
+                            ActivatorPair activatorPair = new();
+                            activatorPair.Activator = this;
+                            activatorPair.Target = targetEntity;
+                            targetQueue.Enqueue(activatorPair);
                         }
                     }
                 }
@@ -229,7 +239,10 @@ namespace Scopa
                     {
                         foreach (var targetEntity in entityLookup[target])
                         {
-                            lockQueue.Enqueue(targetEntity);
+                            ActivatorPair activatorPair = new();
+                            activatorPair.Activator = this;
+                            activatorPair.Target = targetEntity;
+                            lockQueue.Enqueue(activatorPair);
                         }
                     }
                 }
@@ -245,7 +258,10 @@ namespace Scopa
                     {
                         foreach (var targetEntity in entityLookup[target])
                         {
-                            unlockQueue.Enqueue(targetEntity);
+                            ActivatorPair activatorPair = new();
+                            activatorPair.Activator = this;
+                            activatorPair.Target = targetEntity;
+                            unlockQueue.Enqueue(activatorPair);
                         }
                     }
                 }
@@ -260,7 +276,10 @@ namespace Scopa
                     {
                         foreach (var targetEntity in entityLookup[target])
                         {
-                            killQueue.Enqueue(targetEntity);
+                            ActivatorPair activatorPair = new();
+                            activatorPair.Activator = this;
+                            activatorPair.Target = targetEntity;
+                            killQueue.Enqueue(activatorPair);
                         }
                     }
                 }
@@ -308,13 +327,14 @@ namespace Scopa
             allTargets = GetComponentsInChildren<IScopaEntityLogic>();
         }
 
-        public void Activate()
+        public void Activate(ScopaEntity activator)
         {
             Debug.Log(gameObject.name + " is activating!");
             CacheTargetsIfNeeded();
+            lastActivator = activator;
             foreach (var target in allTargets)
             {
-                target.OnEntityActivate(lastActivator);
+                target.OnEntityActivate(activator);
             }
         }
 
