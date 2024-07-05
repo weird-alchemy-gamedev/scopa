@@ -190,8 +190,6 @@ namespace Scopa
 
         protected virtual void OnUpdate() { }
 
-        public static bool hasProcessedQueues = false;
-
         protected void ProcessQueues()
         {
             while (targetQueue.TryDequeue(out ActivatorPair activatorPair))
