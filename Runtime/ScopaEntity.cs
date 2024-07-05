@@ -173,8 +173,12 @@ namespace Scopa
 
         void FixedUpdate()
         {
-            ProcessQueues();
             OnFixedUpdate();
+        }
+
+        void LateFixedUpdate()
+        {
+            hasProcessedQueues = false;
         }
 
         void Update()
@@ -185,7 +189,9 @@ namespace Scopa
         protected virtual void OnFixedUpdate() { }
 
         protected virtual void OnUpdate() { }
-        
+
+        public static bool hasProcessedQueues = false;
+
         protected void ProcessQueues()
         {
             while (targetQueue.TryDequeue(out ActivatorPair activatorPair))
@@ -284,6 +290,8 @@ namespace Scopa
                     }
                 }
             }
+
+            ProcessQueues();
         }
 
 
@@ -310,7 +318,6 @@ namespace Scopa
             lastActivator = activator;
             targetDelayRemaining = targetDelay;
             resetDelayRemaining = waitReset + 0.001f; // add small reset delay to ensure 1 frame between activations
-            Activate();
             return true;
         }
 
