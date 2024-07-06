@@ -349,8 +349,6 @@ namespace Scopa
                     entityObject.transform.localRotation = angles;
                 else if (entData.TryGetAngleSingle("angle", out var angle))
                     entityObject.transform.localRotation = angle;
-                else
-                    entityObject.transform.localRotation = Quaternion.Euler(0, 90, 0);
             }
             entityObject.transform.localScale = Vector3.one;
             entityObject.transform.SetParent(rootGameObject.transform);

@@ -176,11 +176,6 @@ namespace Scopa
             OnFixedUpdate();
         }
 
-        void LateFixedUpdate()
-        {
-            hasProcessedQueues = false;
-        }
-
         void Update()
         {
             OnUpdate();
