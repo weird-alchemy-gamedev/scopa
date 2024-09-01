@@ -406,121 +406,115 @@ namespace Scopa
                 // if ( ScopaMesh.IsMeshBufferEmpty() ) 
                 //     continue;
 
-                foreach (var solid in solids)
-                { 
+                var meshBuildJob = new ScopaMesh.MeshBuildingJobGroup(
+                    $"{namePrefix}-{entityObject.name}-{textureKVP.Key}",
+                    entityOrigin,
+                    solids,
+                    // faceList[textureKVP.Value],
+                    config,
+                    textureKVP.Value,
+                    false
+                );
 
-                    var meshBuildJob = new ScopaMesh.MeshBuildingJobGroup(
-                        $"{namePrefix}-{entityObject.name}-{textureKVP.Key}",
-                        entityOrigin,
-                        solid,
-                        // faceList[textureKVP.Value],
-                        config,
-                        textureKVP.Value,
-                        false
-                    );
+                // finally, add mesh as game object, while we still have all the entity information
+                GameObject newMeshObj = null;
+                var thisMeshPrefab = meshPrefab;
 
-                    // finally, add mesh as game object, while we still have all the entity information
-                    GameObject newMeshObj = null;
-                    var thisMeshPrefab = meshPrefab;
+                // the material config might have a meshPrefab defined too; use that if there isn't already a meshPrefab set already
+                if (meshPrefab == null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.meshPrefab != null)
+                {
+                    thisMeshPrefab = textureKVP.Value.materialConfig.meshPrefab;
+                }
 
-                    // the material config might have a meshPrefab defined too; use that if there isn't already a meshPrefab set already
-                    if (meshPrefab == null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.meshPrefab != null)
+                if (thisMeshPrefab != null)
+                {
+#if UNITY_EDITOR
+                    newMeshObj = UnityEditor.PrefabUtility.InstantiatePrefab(thisMeshPrefab) as GameObject; // maintain prefab linkage
+#else
+                    newMeshObj = Instantiate(thisMeshPrefab);
+#endif
+                }
+                else
+                {
+                    newMeshObj = new GameObject();
+                }
+
+                newMeshObj.name = textureKVP.Key;
+                newMeshObj.transform.SetParent(entityObject.transform);
+                newMeshObj.transform.localPosition = Vector3.zero;
+                newMeshObj.transform.localRotation = Quaternion.identity;
+                newMeshObj.transform.localScale = Vector3.one;
+
+                // if user set a specific prefab, it probably has its own static flags and layer
+                // ... but if it's a generic game object we made, then we set it ourselves
+                if (!string.IsNullOrEmpty(layerName))
+                { // or did they set a specifc override on this entity?
+                    entityObject.layer = LayerMask.NameToLayer(layerName);
+                }
+                else if (thisMeshPrefab == null)
+                {
+                    newMeshObj.layer = config.layer;
+                }
+#if UNITY_EDITOR
+                if ( thisMeshPrefab == null && config.IsEntityStatic(entData.ClassName)) {
+                    SetGameObjectStatic(newMeshObj, entityNeedsCollider && !entityIsTrigger);
+                }
+#endif
+                // detect smoothing angle, if defined via map config or material config or entity
+                var smoothNormalAngle = config.defaultSmoothingAngle;
+                if (entData.TryGetBool("_phong", out var phong))
+                {
+                    if (phong)
                     {
-                        thisMeshPrefab = textureKVP.Value.materialConfig.meshPrefab;
-                    }
-
-                    if (thisMeshPrefab != null)
-                    {
-    #if UNITY_EDITOR
-                        newMeshObj = UnityEditor.PrefabUtility.InstantiatePrefab(thisMeshPrefab) as GameObject; // maintain prefab linkage
-    #else
-                        newMeshObj = Instantiate(thisMeshPrefab);
-    #endif
+                        if (entData.TryGetFloat("_phong_angle", out var phongAngle))
+                        {
+                            smoothNormalAngle = Mathf.RoundToInt(phongAngle);
+                        }
                     }
                     else
                     {
-                        newMeshObj = new GameObject();
+                        smoothNormalAngle = -1;
                     }
+                }
+                else if (textureKVP.Value != null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.smoothingAngle >= 0)
+                {
+                    smoothNormalAngle = textureKVP.Value.materialConfig.smoothingAngle;
+                }
 
-                    newMeshObj.name = textureKVP.Key;
-                    newMeshObj.transform.SetParent(entityObject.transform);
-                    newMeshObj.transform.localPosition = Vector3.zero;
-                    newMeshObj.transform.localRotation = Quaternion.identity;
-                    newMeshObj.transform.localScale = Vector3.one;
+                // var newMesh = ScopaMesh.BuildMeshFromBuffers(
+                //     $"{namePrefix}-{entityObject.name}-{textureKVP.Key}", 
+                //     config, 
+                //     entityOrigin,
+                //     smoothNormalAngle
+                // );
+                var newMesh = meshBuildJob.Complete();
+                meshList.Add(new ScopaMeshData(newMesh, entData, textureKVP.Value.materialConfig, newMeshObj.transform));
+                meshBuildJob = null;
 
-                    // if user set a specific prefab, it probably has its own static flags and layer
-                    // ... but if it's a generic game object we made, then we set it ourselves
-                    if (!string.IsNullOrEmpty(layerName))
-                    { // or did they set a specifc override on this entity?
-                        entityObject.layer = LayerMask.NameToLayer(layerName);
-                    }
-                    else if (thisMeshPrefab == null)
-                    {
-                        newMeshObj.layer = config.layer;
-                    }
-    #if UNITY_EDITOR
-                    if ( thisMeshPrefab == null && config.IsEntityStatic(entData.ClassName)) {
-                        SetGameObjectStatic(newMeshObj, entityNeedsCollider && !entityIsTrigger);
-                    }
-    #endif
-                    // detect smoothing angle, if defined via map config or material config or entity
-                    var smoothNormalAngle = config.defaultSmoothingAngle;
-                    if (entData.TryGetBool("_phong", out var phong))
-                    {
-                        if (phong)
-                        {
-                            if (entData.TryGetFloat("_phong_angle", out var phongAngle))
-                            {
-                                smoothNormalAngle = Mathf.RoundToInt(phongAngle);
-                            }
-                        }
-                        else
-                        {
-                            smoothNormalAngle = -1;
-                        }
-                    }
-                    else if (textureKVP.Value != null && textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.smoothingAngle >= 0)
-                    {
-                        smoothNormalAngle = textureKVP.Value.materialConfig.smoothingAngle;
-                    }
+                // you can inherit ScopaMaterialConfig + override OnBuildMeshObject for extra per-material import logic
+                if (textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.useOnBuildMeshObject)
+                {
+                    textureKVP.Value.materialConfig.OnBuildMeshObject(newMeshObj, newMesh);
+                }
 
-                    // var newMesh = ScopaMesh.BuildMeshFromBuffers(
-                    //     $"{namePrefix}-{entityObject.name}-{textureKVP.Key}", 
-                    //     config, 
-                    //     entityOrigin,
-                    //     smoothNormalAngle
-                    // );
+                // populate components... if the mesh components aren't there, then add them
+                if (newMeshObj.TryGetComponent<MeshFilter>(out var meshFilter) == false)
+                {
+                    meshFilter = newMeshObj.AddComponent<MeshFilter>();
+                }
+                meshFilter.sharedMesh = newMesh;
 
-                    var newMesh = meshBuildJob.Complete();
+                bool addedMeshRenderer = false;
+                if (newMeshObj.TryGetComponent<MeshRenderer>(out var meshRenderer) == false)
+                {
+                    meshRenderer = newMeshObj.AddComponent<MeshRenderer>();
+                    addedMeshRenderer = true;
+                }
+                meshRenderer.sharedMaterial = textureKVP.Value.material;
 
-                    meshList.Add(new ScopaMeshData(newMesh, entData, textureKVP.Value.materialConfig, newMeshObj.transform));
-                    meshBuildJob = null;
-
-                    // you can inherit ScopaMaterialConfig + override OnBuildMeshObject for extra per-material import logic
-                    if (textureKVP.Value.materialConfig != null && textureKVP.Value.materialConfig.useOnBuildMeshObject)
-                    {
-                        textureKVP.Value.materialConfig.OnBuildMeshObject(newMeshObj, newMesh);
-                    }
-
-                    // populate components... if the mesh components aren't there, then add them
-                    if (newMeshObj.TryGetComponent<MeshFilter>(out var meshFilter) == false)
-                    {
-                        meshFilter = newMeshObj.AddComponent<MeshFilter>();
-                    }
-                    meshFilter.sharedMesh = newMesh;
-
-                    bool addedMeshRenderer = false;
-                    if (newMeshObj.TryGetComponent<MeshRenderer>(out var meshRenderer) == false)
-                    {
-                        meshRenderer = newMeshObj.AddComponent<MeshRenderer>();
-                        addedMeshRenderer = true;
-                    }
-                    meshRenderer.sharedMaterial = textureKVP.Value.material;
-
-                    if (addedMeshRenderer)
-                    { // if we added a generic mesh renderer, then set default shadow caster setting too
-                        meshRenderer.shadowCastingMode = config.castShadows;
-                    }
+                if (addedMeshRenderer)
+                { // if we added a generic mesh renderer, then set default shadow caster setting too
+                    meshRenderer.shadowCastingMode = config.castShadows;
                 }
             }
 

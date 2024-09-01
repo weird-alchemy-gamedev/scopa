@@ -350,20 +350,22 @@ namespace Scopa {
             JobHandle jobHandle;
             ScopaMapConfig config;
 
-            public MeshBuildingJobGroup(string meshName, Vector3 meshOrigin, Solid solid, ScopaMapConfig config, ScopaMapConfig.MaterialOverride materialOverride = null, bool includeDiscardedFaces = false) {       
+            public MeshBuildingJobGroup(string meshName, Vector3 meshOrigin, IEnumerable<Solid> solids, ScopaMapConfig config, ScopaMapConfig.MaterialOverride materialOverride = null, bool includeDiscardedFaces = false) {       
                 this.config = config;
                 var faceList = new List<Face>();
-                foreach(var face in solid.Faces) {
-                    // if ( face.Vertices == null || face.Vertices.Count == 0) // this shouldn't happen though
-                    //     continue;
+                foreach( var solid in solids) {
+                    foreach(var face in solid.Faces) {
+                        // if ( face.Vertices == null || face.Vertices.Count == 0) // this shouldn't happen though
+                        //     continue;
 
-                    if ( !includeDiscardedFaces && IsFaceCulledDiscard(face) )
-                        continue;
+                        if ( !includeDiscardedFaces && IsFaceCulledDiscard(face) )
+                            continue;
 
-                    if ( materialOverride != null && materialOverride.textureName.ToLowerInvariant().GetHashCode() != face.TextureName.ToLowerInvariant().GetHashCode() )
-                        continue;
+                        if ( materialOverride != null && materialOverride.textureName.ToLowerInvariant().GetHashCode() != face.TextureName.ToLowerInvariant().GetHashCode() )
+                            continue;
 
-                    faceList.Add(face);
+                        faceList.Add(face);
+                    }
                 }
 
                 faceVertexOffsets = new NativeArray<int>(faceList.Count+1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
@@ -384,22 +386,17 @@ namespace Scopa {
                 faceShift = new NativeArray<Vector2>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
                 faceUVoverride = new NativeArray<Vector2>(vertCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
 
-                for ( int i = 0; i < faceList.Count; i++) {
+                for(int i=0; i<faceList.Count; i++) {
                     if (materialOverride != null 
                         && materialOverride.materialConfig != null
                         && materialOverride.materialConfig.useOnBuildBrushFace 
                         && materialOverride.materialConfig.OnBuildBrushFace(faceList[i], config, out var overrideUVs)
-                    ) 
-                    {
-                        for( int u = 0; u < overrideUVs.Length; u++) 
-                        {
+                    ) {
+                        for(int u=0; u<overrideUVs.Length; u++) {
                             faceUVoverride[faceVertexOffsets[i]+u] = overrideUVs[u];
                         }
-                    } 
-                    else 
-                    {
-                        for( int u = faceVertexOffsets[i]; u < faceVertexOffsets[i + 1]; u++) 
-                        { // fill with dummy values to ignore in the Job later
+                    } else {
+                        for(int u=faceVertexOffsets[i]; u<faceVertexOffsets[i+1]; u++) { // fill with dummy values to ignore in the Job later
                             faceUVoverride[u] = new Vector2(MeshBuildingJob.IGNORE_UV, MeshBuildingJob.IGNORE_UV);
                         }
                     }
@@ -654,10 +651,8 @@ namespace Scopa {
 
                 faceVertices = new NativeArray<Vector3>(vertCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
                 facePlaneNormals = new NativeArray<Vector3>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                for(int i=0; i<faceList.Count; i++) 
-                {
-                    for(int v=faceVertexOffsets[i]; v < faceVertexOffsets[i+1]; v++) 
-                    {
+                for(int i=0; i<faceList.Count; i++) {
+                    for(int v=faceVertexOffsets[i]; v < faceVertexOffsets[i+1]; v++) {
                         faceVertices[v] = faceList[i].Vertices[v-faceVertexOffsets[i]].ToUnity();
                     }
                     facePlaneNormals[i] = faceList[i].Plane.Normal.ToUnity();
