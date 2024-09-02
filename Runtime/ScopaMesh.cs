@@ -350,22 +350,20 @@ namespace Scopa {
             JobHandle jobHandle;
             ScopaMapConfig config;
 
-            public MeshBuildingJobGroup(string meshName, Vector3 meshOrigin, IEnumerable<Solid> solids, ScopaMapConfig config, ScopaMapConfig.MaterialOverride materialOverride = null, bool includeDiscardedFaces = false) {       
+            public MeshBuildingJobGroup(string meshName, Vector3 meshOrigin, Solid solid, ScopaMapConfig config, ScopaMapConfig.MaterialOverride materialOverride = null, bool includeDiscardedFaces = false) {       
                 this.config = config;
                 var faceList = new List<Face>();
-                foreach( var solid in solids) {
-                    foreach(var face in solid.Faces) {
-                        // if ( face.Vertices == null || face.Vertices.Count == 0) // this shouldn't happen though
-                        //     continue;
+                foreach(var face in solid.Faces) {
+                    // if ( face.Vertices == null || face.Vertices.Count == 0) // this shouldn't happen though
+                    //     continue;
 
-                        if ( !includeDiscardedFaces && IsFaceCulledDiscard(face) )
-                            continue;
+                    if ( !includeDiscardedFaces && IsFaceCulledDiscard(face) )
+                        continue;
 
-                        if ( materialOverride != null && materialOverride.textureName.ToLowerInvariant().GetHashCode() != face.TextureName.ToLowerInvariant().GetHashCode() )
-                            continue;
+                    if ( materialOverride != null && materialOverride.textureName.ToLowerInvariant().GetHashCode() != face.TextureName.ToLowerInvariant().GetHashCode() )
+                        continue;
 
-                        faceList.Add(face);
-                    }
+                    faceList.Add(face);
                 }
 
                 faceVertexOffsets = new NativeArray<int>(faceList.Count+1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
@@ -468,9 +466,16 @@ namespace Scopa {
 
                 #if UNITY_EDITOR
                 if ( config.addLightmapUV2 ) {
-                    UnwrapParam.SetDefaults( out var unwrap);
-                    unwrap.packMargin *= 2;
-                    Unwrapping.GenerateSecondaryUVSet( newMesh, unwrap );
+                    try
+                    { 
+                        UnwrapParam.SetDefaults( out var unwrap);
+                        unwrap.packMargin *= 2;
+                        Unwrapping.GenerateSecondaryUVSet( newMesh, unwrap );
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
                 }
 
                 if ( config.meshCompression != ScopaMapConfig.ModelImporterMeshCompression.Off)
