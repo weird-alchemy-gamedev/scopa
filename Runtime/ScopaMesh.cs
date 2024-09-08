@@ -336,141 +336,198 @@ namespace Scopa {
             return inside;
         }
 
-        public class MeshBuildingJobGroup {
-
-            NativeArray<int> faceVertexOffsets, faceTriIndexCounts; // index = i
-            NativeArray<Vector3> faceVertices;
-            NativeArray<Vector4> faceU, faceV; // index = i, .w = scale
-            NativeArray<float> faceRot; 
-            NativeArray<Vector2> faceShift, faceUVoverride; // index = i
-            int vertCount, triIndexCount;
+        public class MeshBuildingJobGroup
+        {
+            // Fields
+            private NativeArray<int> vertexOffsets, triIndexCounts; // index = i
+            private NativeArray<Vector3> vertices;
+            private NativeArray<Vector4> uAxis, vAxis; // index = i, .w = scale
+            private NativeArray<float> rotation;
+            private NativeArray<Vector2> shift, uvOverride; // index = i
+            private int totalVertexCount, totalTriIndexCount;
 
             public Mesh.MeshDataArray outputMesh;
-            Mesh newMesh;
-            JobHandle jobHandle;
-            ScopaMapConfig config;
+            private Mesh generatedMesh;
+            private JobHandle jobHandle;
+            private ScopaMapConfig config;
 
-            public MeshBuildingJobGroup(string meshName, Vector3 meshOrigin, Solid solid, ScopaMapConfig config, ScopaMapConfig.MaterialOverride materialOverride = null, bool includeDiscardedFaces = false) {       
+            // Constructor
+            public MeshBuildingJobGroup(string meshName, Vector3 meshOrigin, Solid solid, ScopaMapConfig config, ScopaMapConfig.MaterialOverride materialOverride = null, bool includeDiscardedFaces = false)
+            {
                 this.config = config;
                 var faceList = new List<Face>();
-                foreach(var face in solid.Faces) {
-                    // if ( face.Vertices == null || face.Vertices.Count == 0) // this shouldn't happen though
-                    //     continue;
 
-                    if ( !includeDiscardedFaces && IsFaceCulledDiscard(face) )
-                        continue;
+                foreach (var face in solid.Faces)
+                {
+                    if (!includeDiscardedFaces && IsFaceCulledDiscard(face)) continue;
 
-                    if ( materialOverride != null && materialOverride.textureName.ToLowerInvariant().GetHashCode() != face.TextureName.ToLowerInvariant().GetHashCode() )
-                        continue;
+                    if (materialOverride != null &&
+                        materialOverride.textureName.ToLowerInvariant().GetHashCode() != face.TextureName.ToLowerInvariant().GetHashCode()) continue;
 
                     faceList.Add(face);
                 }
 
-                faceVertexOffsets = new NativeArray<int>(faceList.Count+1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                faceTriIndexCounts = new NativeArray<int>(faceList.Count+1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                for(int i=0; i<faceList.Count; i++) {
-                    faceVertexOffsets[i] = vertCount;
-                    vertCount += faceList[i].Vertices.Count;
-                    faceTriIndexCounts[i] = triIndexCount;
-                    triIndexCount += (faceList[i].Vertices.Count-2)*3;
+                InitializeFaceArrays(faceList);
+                InitializeMeshData(faceList, meshOrigin, materialOverride);
+                InitializeJob(faceList, meshOrigin, materialOverride, config.scalingFactor, config.globalTexelScale);
+
+                generatedMesh = new Mesh { name = meshName };
+            }
+
+            // Initialize native arrays for face data
+            private void InitializeFaceArrays(List<Face> faceList)
+            {
+                vertexOffsets = new NativeArray<int>(faceList.Count + 1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                triIndexCounts = new NativeArray<int>(faceList.Count + 1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+
+                for (int i = 0; i < faceList.Count; i++)
+                {
+                    vertexOffsets[i] = totalVertexCount;
+                    totalVertexCount += faceList[i].Vertices.Count;
+
+                    triIndexCounts[i] = totalTriIndexCount;
+                    totalTriIndexCount += (faceList[i].Vertices.Count - 2) * 3;
                 }
-                faceVertexOffsets[faceList.Count] = vertCount;
-                faceTriIndexCounts[faceList.Count] = triIndexCount;
 
-                faceVertices = new NativeArray<Vector3>(vertCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                faceU = new NativeArray<Vector4>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                faceV = new NativeArray<Vector4>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                faceRot = new NativeArray<float>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                faceShift = new NativeArray<Vector2>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                faceUVoverride = new NativeArray<Vector2>(vertCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                vertexOffsets[faceList.Count] = totalVertexCount;
+                triIndexCounts[faceList.Count] = totalTriIndexCount;
 
-                for(int i=0; i<faceList.Count; i++) {
-                    if (materialOverride != null 
-                        && materialOverride.materialConfig != null
-                        && materialOverride.materialConfig.useOnBuildBrushFace 
-                        && materialOverride.materialConfig.OnBuildBrushFace(faceList[i], config, out var overrideUVs)
-                    ) {
-                        for(int u=0; u<overrideUVs.Length; u++) {
-                            faceUVoverride[faceVertexOffsets[i]+u] = overrideUVs[u];
-                        }
-                    } else {
-                        for(int u=faceVertexOffsets[i]; u<faceVertexOffsets[i+1]; u++) { // fill with dummy values to ignore in the Job later
-                            faceUVoverride[u] = new Vector2(MeshBuildingJob.IGNORE_UV, MeshBuildingJob.IGNORE_UV);
-                        }
+                vertices = new NativeArray<Vector3>(totalVertexCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                uAxis = new NativeArray<Vector4>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                vAxis = new NativeArray<Vector4>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                rotation = new NativeArray<float>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                shift = new NativeArray<Vector2>(faceList.Count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                uvOverride = new NativeArray<Vector2>(totalVertexCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            }
+
+            // Fill mesh data and UV overrides
+            private void InitializeMeshData(List<Face> faceList, Vector3 meshOrigin, ScopaMapConfig.MaterialOverride materialOverride)
+            {
+                for (int i = 0; i < faceList.Count; i++)
+                {
+                    bool uvOverrideApplied = ApplyMaterialOverride(faceList[i], materialOverride, i);
+
+                    if (!uvOverrideApplied)
+                    {
+                        FillDefaultUVs(i);
                     }
 
-                    for(int v=faceVertexOffsets[i]; v < faceVertexOffsets[i+1]; v++) {
-                        faceVertices[v] = faceList[i].Vertices[v-faceVertexOffsets[i]].ToUnity();
-                    }
-                    faceU[i] = new Vector4(faceList[i].UAxis.X, faceList[i].UAxis.Y, faceList[i].UAxis.Z, faceList[i].XScale);
-                    faceV[i] = new Vector4(faceList[i].VAxis.X, faceList[i].VAxis.Y, faceList[i].VAxis.Z, faceList[i].YScale);
-                    faceRot[i] = faceList[i].Rotation;
-                    faceShift[i] = new Vector2(faceList[i].XShift, faceList[i].YShift);
+                    FillFaceVertexData(faceList[i], i);
                 }
 
                 outputMesh = Mesh.AllocateWritableMeshData(1);
                 var meshData = outputMesh[0];
-                meshData.SetVertexBufferParams(vertCount,
+
+                meshData.SetVertexBufferParams(totalVertexCount,
                     new VertexAttributeDescriptor(VertexAttribute.Position),
-                    new VertexAttributeDescriptor(VertexAttribute.Normal, stream:1),
-                    new VertexAttributeDescriptor(VertexAttribute.TexCoord0, dimension:2, stream:2)
-                );
-                meshData.SetIndexBufferParams(triIndexCount, IndexFormat.UInt32);
-                 
-                var jobData = new MeshBuildingJob();
-                jobData.faceVertexOffsets = faceVertexOffsets;
-                jobData.faceTriIndexCounts = faceTriIndexCounts;
+                    new VertexAttributeDescriptor(VertexAttribute.Normal, stream: 1),
+                    new VertexAttributeDescriptor(VertexAttribute.TexCoord0, dimension: 2, stream: 2));
 
-#if SCOPA_USE_BURST
-                jobData.faceVertices = faceVertices.Reinterpret<float3>();
-                jobData.faceU = faceU.Reinterpret<float4>();
-                jobData.faceV = faceV.Reinterpret<float4>();
-                jobData.faceRot = faceRot.Reinterpret<float>();
-                jobData.faceShift = faceShift.Reinterpret<float2>();
-                jobData.uvOverride = faceUVoverride.Reinterpret<float2>();
-#else
-                jobData.faceVertices = faceVertices;
-                jobData.faceU = faceU;
-                jobData.faceV = faceV;
-                jobData.faceRot = faceRot;
-                jobData.faceShift = faceShift;
-                jobData.uvOverride = faceUVoverride;
-                #endif
-
-                jobData.meshData = outputMesh[0];
-                jobData.scalingFactor = config.scalingFactor;
-                jobData.globalTexelScale = config.globalTexelScale;
-                jobData.textureWidth = materialOverride?.material?.mainTexture != null ? materialOverride.material.mainTexture.width : config.defaultTexSize;
-                jobData.textureHeight = materialOverride?.material?.mainTexture != null ? materialOverride.material.mainTexture.height : config.defaultTexSize;
-                jobData.meshOrigin = meshOrigin;
-                jobHandle = jobData.Schedule(faceList.Count, 128);
-
-                newMesh = new Mesh();
-                newMesh.name = meshName;
+                meshData.SetIndexBufferParams(totalTriIndexCount, IndexFormat.UInt32);
             }
 
-            public Mesh Complete() {
+            // Applies material override for UVs, returns true if applied, false if not
+            private bool ApplyMaterialOverride(Face face, ScopaMapConfig.MaterialOverride materialOverride, int faceIndex)
+            {
+                if (materialOverride != null &&
+                    materialOverride.materialConfig != null &&
+                    materialOverride.materialConfig.useOnBuildBrushFace &&
+                    materialOverride.materialConfig.OnBuildBrushFace(face, config, out var overrideUVs))
+                {
+                    for (int u = 0; u < overrideUVs.Length; u++)
+                    {
+                        uvOverride[vertexOffsets[faceIndex] + u] = overrideUVs[u];
+                    }
+                    return true;
+                }
+
+                return false;
+            }
+
+            // Fills the UVs with dummy values
+            private void FillDefaultUVs(int faceIndex)
+            {
+                for (int u = vertexOffsets[faceIndex]; u < vertexOffsets[faceIndex + 1]; u++)
+                {
+                    uvOverride[u] = new Vector2(MeshBuildingJob.IGNORE_UV, MeshBuildingJob.IGNORE_UV);
+                }
+            }
+
+            // Fills vertex and face data for each face
+            private void FillFaceVertexData(Face face, int faceIndex)
+            {
+                for (int v = vertexOffsets[faceIndex]; v < vertexOffsets[faceIndex + 1]; v++)
+                {
+                    vertices[v] = face.Vertices[v - vertexOffsets[faceIndex]].ToUnity();
+                }
+
+                uAxis[faceIndex] = new Vector4(face.UAxis.X, face.UAxis.Y, face.UAxis.Z, face.XScale);
+                vAxis[faceIndex] = new Vector4(face.VAxis.X, face.VAxis.Y, face.VAxis.Z, face.YScale);
+                rotation[faceIndex] = face.Rotation;
+                shift[faceIndex] = new Vector2(face.XShift, face.YShift);
+            }
+
+            // Initializes the job with appropriate data
+            private void InitializeJob(List<Face> faceList, Vector3 meshOrigin, ScopaMapConfig.MaterialOverride materialOverride, float scalingFactor, float globalTexelScale)
+            {
+                var jobData = new MeshBuildingJob
+                {
+                    faceVertexOffsets = vertexOffsets,
+                    faceTriIndexCounts = triIndexCounts,
+
+#if SCOPA_USE_BURST
+                    faceVertices = vertices.Reinterpret<float3>(),
+                    faceU = uAxis.Reinterpret<float4>(),
+                    faceV = vAxis.Reinterpret<float4>(),
+                    faceRot = rotation.Reinterpret<float>(),
+                    faceShift = shift.Reinterpret<float2>(),
+                    uvOverride = uvOverride.Reinterpret<float2>(),
+#else
+                    faceVertices = vertices,
+                    faceU = uAxis,
+                    faceV = vAxis,
+                    faceRot = rotation,
+                    faceShift = shift,
+                    uvOverride = uvOverride,
+#endif
+                    meshData = outputMesh[0],
+                    scalingFactor = scalingFactor,
+                    globalTexelScale = globalTexelScale,
+                    textureWidth = materialOverride?.material?.mainTexture != null ? materialOverride.material.mainTexture.width : config.defaultTexSize,
+                    textureHeight = materialOverride?.material?.mainTexture != null ? materialOverride.material.mainTexture.height : config.defaultTexSize,
+                    meshOrigin = meshOrigin
+                };
+
+                jobHandle = jobData.Schedule(faceList.Count, 128);
+            }
+
+
+            // Completes the job and finalizes the mesh
+            public Mesh Complete()
+            {
                 jobHandle.Complete();
 
                 var meshData = outputMesh[0];
                 meshData.subMeshCount = 1;
-                meshData.SetSubMesh(0, new SubMeshDescriptor(0, triIndexCount), MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontNotifyMeshUsers);
+                meshData.SetSubMesh(0, new SubMeshDescriptor(0, totalTriIndexCount), MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontNotifyMeshUsers);
 
-                Mesh.ApplyAndDisposeWritableMeshData(outputMesh, newMesh);
-                newMesh.RecalculateNormals();
-                newMesh.RecalculateBounds();
+                Mesh.ApplyAndDisposeWritableMeshData(outputMesh, generatedMesh);
+                generatedMesh.RecalculateNormals();
+                generatedMesh.RecalculateBounds();
 
-                if (config.addTangents) {
-                    newMesh.RecalculateTangents();
+                if (config.addTangents)
+                {
+                    generatedMesh.RecalculateTangents();
                 }
 
-                #if UNITY_EDITOR
-                if ( config.addLightmapUV2 ) {
+#if UNITY_EDITOR
+                if (config.addLightmapUV2)
+                {
                     try
-                    { 
-                        UnwrapParam.SetDefaults( out var unwrap);
+                    {
+                        UnwrapParam.SetDefaults(out var unwrap);
                         unwrap.packMargin *= 2;
-                        Unwrapping.GenerateSecondaryUVSet( newMesh, unwrap );
+                        Unwrapping.GenerateSecondaryUVSet(generatedMesh, unwrap);
                     }
                     catch (Exception e)
                     {
@@ -478,27 +535,33 @@ namespace Scopa {
                     }
                 }
 
-                if ( config.meshCompression != ScopaMapConfig.ModelImporterMeshCompression.Off)
-                    UnityEditor.MeshUtility.SetMeshCompression(newMesh, (ModelImporterMeshCompression)config.meshCompression);
-                #endif
+                if (config.meshCompression != ScopaMapConfig.ModelImporterMeshCompression.Off)
+                    UnityEditor.MeshUtility.SetMeshCompression(generatedMesh, (ModelImporterMeshCompression)config.meshCompression);
+#endif
 
-                faceVertexOffsets.Dispose();
-                faceTriIndexCounts.Dispose();
-                faceVertices.Dispose();
-                faceUVoverride.Dispose();
-                faceU.Dispose();
-                faceV.Dispose();
-                faceRot.Dispose();
-                faceShift.Dispose();
-
-                return newMesh;
+                DisposeNativeArrays();
+                return generatedMesh;
             }
 
+            // Dispose of native arrays
+            private void DisposeNativeArrays()
+            {
+
+                vertexOffsets.Dispose();
+                triIndexCounts.Dispose();
+                vertices.Dispose();
+                uvOverride.Dispose();
+                uAxis.Dispose();
+                vAxis.Dispose();
+                rotation.Dispose();
+                shift.Dispose();
+            }
         }
 
-        #if SCOPA_USE_BURST
+
+#if SCOPA_USE_BURST
         [BurstCompile]
-        #endif
+#endif
         public struct MeshBuildingJob : IJobParallelFor
         {
             [ReadOnlyAttribute] public NativeArray<int> faceVertexOffsets, faceTriIndexCounts; // index = i
