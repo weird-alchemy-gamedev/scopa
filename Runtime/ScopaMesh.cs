@@ -560,120 +560,104 @@ namespace Scopa {
 
 
 #if SCOPA_USE_BURST
-[BurstCompile]
+        [BurstCompile]
 #endif
         public struct MeshBuildingJob : IJobParallelFor
         {
-            [ReadOnly] public NativeArray<int> FaceVertexOffsets;
-            [ReadOnly] public NativeArray<int> FaceTriIndexCounts;
+            [ReadOnlyAttribute] public NativeArray<int> faceVertexOffsets, faceTriIndexCounts; // index = i
 
 #if SCOPA_USE_BURST
-            [ReadOnly] public NativeArray<float3> FaceVertices;
-            [ReadOnly] public NativeArray<float4> FaceU, FaceV; // .w = scale
-            [ReadOnly] public NativeArray<float> FaceRotations;
-            [ReadOnly] public NativeArray<float2> FaceShifts, UVOverrides;
-            [ReadOnly] public float3 MeshOrigin;
+            [ReadOnlyAttribute] public NativeArray<float3> faceVertices;
+            [ReadOnlyAttribute] public NativeArray<float4> faceU, faceV; // index = i, .w = scale
+            [ReadOnlyAttribute] public NativeArray<float> faceRot;
+            [ReadOnlyAttribute] public NativeArray<float2> faceShift, uvOverride; // index = i
+            [ReadOnlyAttribute] public float3 meshOrigin;
 #else
-            [ReadOnly] public NativeArray<Vector3> FaceVertices;
-            [ReadOnly] public NativeArray<Vector4> FaceU, FaceV; // .w = scale
-            [ReadOnly] public NativeArray<float> FaceRotations;
-            [ReadOnly] public NativeArray<Vector2> FaceShifts, UVOverrides;
-            [ReadOnly] public Vector3 MeshOrigin;
-#endif
-
+            [ReadOnlyAttribute] public NativeArray<Vector3> faceVertices;
+            [ReadOnlyAttribute] public NativeArray<Vector4> faceU, faceV; // index = i, .w = scale
+            [ReadOnlyAttribute] public NativeArray<float> faceRot;
+            [ReadOnlyAttribute] public NativeArray<Vector2> faceShift, uvOverride; // index = i
+            [ReadOnlyAttribute] public Vector3 meshOrigin;
+            #endif
+            
             [NativeDisableParallelForRestriction]
-            public Mesh.MeshData MeshData;
+            public Mesh.MeshData meshData;
 
-            [ReadOnly] public float ScalingFactor;
-            [ReadOnly] public float GlobalTexelScale;
-            [ReadOnly] public float TextureWidth;
-            [ReadOnly] public float TextureHeight;
+            [ReadOnlyAttribute] public float scalingFactor, globalTexelScale, textureWidth, textureHeight;
+            public const float IGNORE_UV = -99999f;
 
-            private const float IgnoreUV = -99999f;
-
-            public void Execute(int index)
+            public void Execute(int i)
             {
-                int startVertexIndex = FaceVertexOffsets[index];
-                int endVertexIndex = FaceVertexOffsets[index + 1];
+                var offsetStart = faceVertexOffsets[i];
+                var offsetEnd = faceVertexOffsets[i+1];
 
+                #if SCOPA_USE_BURST
+                var outputVerts = meshData.GetVertexData<float3>();
+                var outputUVs = meshData.GetVertexData<float2>(2);
+                #else
+                var outputVerts = meshData.GetVertexData<Vector3>();
+                var outputUVs = meshData.GetVertexData<Vector2>(2);
+                #endif
+
+                var outputTris = meshData.GetIndexData<int>();
+
+                // add all verts, normals, and UVs
+                for( int n=offsetStart; n<offsetEnd; n++ ) {
+                    outputVerts[n] = faceVertices[n] * scalingFactor - meshOrigin;
+
+                    if (uvOverride[n].x > IGNORE_UV) {
+                        outputUVs[n] = uvOverride[n];
+                    } else {
 #if SCOPA_USE_BURST
-                var vertices = MeshData.GetVertexData<float3>();
-                var uvs = MeshData.GetVertexData<float2>(2);
-#else
-                var vertices = MeshData.GetVertexData<Vector3>();
-                var uvs = MeshData.GetVertexData<Vector2>(2);
-#endif
-
-                var triangles = MeshData.GetIndexData<int>();
-
-                ProcessVerticesAndUVs(startVertexIndex, endVertexIndex, index, vertices, uvs);
-
-                AddTriangles(startVertexIndex, endVertexIndex, index, triangles);
-            }
-
-            private void ProcessVerticesAndUVs(int startVertexIndex, int endVertexIndex, int faceIndex,
-                                                NativeArray<float3> vertices, NativeArray<float2> uvs)
-            {
-                for (int i = startVertexIndex; i < endVertexIndex; i++)
-                {
-                    vertices[i] = FaceVertices[i] * ScalingFactor - MeshOrigin;
-
-                    if (UVOverrides[i].x > IgnoreUV)
-                    {
-                        uvs[i] = UVOverrides[i];
-                    }
-                    else
-                    {
-                        // Compute UVs
-                        float2 uv;
-                        float rotationRad = FaceRotations[faceIndex] * -Mathf.Deg2Rad;
-
-#if SCOPA_USE_BURST
-                        uv = new float2(
-                            (math.dot(FaceVertices[i], FaceU[faceIndex].xyz / FaceU[faceIndex].w) + 
-                             (FaceShifts[faceIndex].x % TextureWidth)) / TextureWidth,
-                            (math.dot(FaceVertices[i], FaceV[faceIndex].xyz / -FaceV[faceIndex].w) + 
-                             (-FaceShifts[faceIndex].y % TextureHeight)) / TextureHeight
+                        var rotationRad = -math.radians(faceRot[i]);
+                        outputUVs[n] = new float2(
+                            (math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w) + (faceShift[i].x % textureWidth)) / textureWidth,
+                            (math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / textureHeight
                         );
-#else
-                        uv = new Vector2(
-                            (Vector3.Dot(FaceVertices[i], FaceU[faceIndex] / FaceU[faceIndex].w) +
-                             (FaceShifts[faceIndex].x % TextureWidth)) / TextureWidth,
-                            (Vector3.Dot(FaceVertices[i], FaceV[faceIndex] / -FaceV[faceIndex].w) +
-                             (-FaceShifts[faceIndex].y % TextureHeight)) / TextureHeight
-                        );
-#endif
 
-                        // Apply rotation
-#if SCOPA_USE_BURST
-                        var rotatedUV = new float2
+                        
+
+                        var rotatedVector = new float2
                         {
-                            x = (uv.x * math.cos(rotationRad)) - (uv.y * math.sin(rotationRad)),
-                            y = (uv.x * math.sin(rotationRad)) + (uv.y * math.cos(rotationRad))
+                            x = (outputUVs[n].x * math.cos(rotationRad)) - (outputUVs[n].y * math.sin(rotationRad)),
+                            y = (outputUVs[n].x * math.sin(rotationRad)) + (outputUVs[n].y * math.cos(rotationRad))
                         };
-                        uvs[i] = rotatedUV * GlobalTexelScale;
+                        outputUVs[n] = rotatedVector * globalTexelScale;
 #else
-                        var rotatedUV = new Vector2
+
+                        //var faceUScaled = Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w);
+                        //var faceVScaled = Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w);
+                        //var faceURot = faceUScaled * Mathf.Cos(faceRot[i]) - outputUVs[n].y * Mathf.Sin(faceRot[i]);
+                        //var faceYRot = outputUVs[n].y * Mathf.Sin(faceRot[i]) + outputUVs[n].y * Mathf.Cos(faceRot[i]);
+                        //outputUVs[n] = new Vector2(
+                        //    (+(faceShift[i].x % textureWidth)) / (textureWidth),
+                        //    (+(-faceShift[i].y % textureHeight)) / (textureHeight)
+                        //);
+
+                        //outputUVs[n] *= globalTexelScale;
+
+                        outputUVs[n] = new Vector2(
+                            (Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w) + (faceShift[i].x % textureWidth)) / (textureWidth),
+                            (Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / (textureHeight)
+                        );
+
+                        var rotationRad = faceRot[i] * -Mathf.Deg2Rad;
+
+                        var rotatedVector = new Vector2
                         {
-                            x = (uv.x * Mathf.Cos(rotationRad)) - (uv.y * Mathf.Sin(rotationRad)),
-                            y = (uv.x * Mathf.Sin(rotationRad)) + (uv.y * Mathf.Cos(rotationRad))
+                            x = (outputUVs[n].x * Mathf.Cos(rotationRad)) - (outputUVs[n].y * Mathf.Sin(rotationRad)),
+                            y = (outputUVs[n].x * Mathf.Sin(rotationRad)) + (outputUVs[n].y * Mathf.Cos(rotationRad))
                         };
-                        uvs[i] = rotatedUV * GlobalTexelScale;
-#endif
+                        outputUVs[n] = rotatedVector * globalTexelScale;
+                        #endif
                     }
                 }
-            }
 
-            private void AddTriangles(int startVertexIndex, int endVertexIndex, int faceIndex, NativeArray<int> triangles)
-            {
-                int triangleOffset = FaceTriIndexCounts[faceIndex];
-                int vertexCount = endVertexIndex - startVertexIndex;
-
-                for (int t = 2; t < vertexCount; t++)
-                {
-                    triangles[triangleOffset + (t - 2) * 3] = startVertexIndex;
-                    triangles[triangleOffset + (t - 2) * 3 + 1] = startVertexIndex + t - 1;
-                    triangles[triangleOffset + (t - 2) * 3 + 2] = startVertexIndex + t;
+                // verts are already in correct order, add as basic fan pattern (since we know it's a convex face)
+                for(int t=2; t<offsetEnd-offsetStart; t++) {
+                    outputTris[faceTriIndexCounts[i]+(t-2)*3] = offsetStart;
+                    outputTris[faceTriIndexCounts[i]+(t-2)*3+1] = offsetStart + t-1;
+                    outputTris[faceTriIndexCounts[i]+(t-2)*3+2] = offsetStart + t;
                 }
             }
         }
