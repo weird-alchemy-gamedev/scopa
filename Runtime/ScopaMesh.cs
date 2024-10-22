@@ -609,47 +609,67 @@ namespace Scopa {
                         outputUVs[n] = uvOverride[n];
                     } else {
 #if SCOPA_USE_BURST
-                        var rotationRad = -math.radians(faceRot[i]);
-                        outputUVs[n] = new float2(
-                            (math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w) + (faceShift[i].x % textureWidth)) / textureWidth,
-                            (math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / textureHeight
-                        );
+                        //var rotationRad = -math.radians(faceRot[i]);
+                        //outputUVs[n] = new float2(
+                        //    (math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w) + (faceShift[i].x % textureWidth)) / textureWidth,
+                        //    (math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / textureHeight
+                        //);
 
                         
 
+                        //var rotatedVector = new float2
+                        //{
+                        //    x = (outputUVs[n].x * math.cos(rotationRad)) - (outputUVs[n].y * math.sin(rotationRad)),
+                        //    y = (outputUVs[n].x * math.sin(rotationRad)) + (outputUVs[n].y * math.cos(rotationRad))
+                        //};
+                        //outputUVs[n] = rotatedVector * globalTexelScale;
+
+                        var faceUScaled = math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w);
+                        var faceVScaled = math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w);
+
+                        // Rotation part
+                        var rotationRad = -math.radians(faceRot[i]);
                         var rotatedVector = new float2
                         {
-                            x = (outputUVs[n].x * math.cos(rotationRad)) - (outputUVs[n].y * math.sin(rotationRad)),
-                            y = (outputUVs[n].x * math.sin(rotationRad)) + (outputUVs[n].y * math.cos(rotationRad))
+                            x = (faceUScaled * math.cos(rotationRad)) - (faceVScaled * math.sin(rotationRad)),
+                            y = (faceUScaled * math.sin(rotationRad)) + (faceVScaled * math.cos(rotationRad))
                         };
+
+                        // UV shifting
+                        outputUVs[n] = new float2(
+                            (faceShift[i].x % textureWidth) / textureWidth,
+                            (-faceShift[i].y % textureHeight) / textureHeight
+                        );
+
+                        // Apply global texel scale after rotation
                         outputUVs[n] = rotatedVector * globalTexelScale;
 #else
 
-                        //var faceUScaled = Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w);
-                        //var faceVScaled = Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w);
-                        //var faceURot = faceUScaled * Mathf.Cos(faceRot[i]) - outputUVs[n].y * Mathf.Sin(faceRot[i]);
-                        //var faceYRot = outputUVs[n].y * Mathf.Sin(faceRot[i]) + outputUVs[n].y * Mathf.Cos(faceRot[i]);
-                        //outputUVs[n] = new Vector2(
-                        //    (+(faceShift[i].x % textureWidth)) / (textureWidth),
-                        //    (+(-faceShift[i].y % textureHeight)) / (textureHeight)
-                        //);
-
-                        //outputUVs[n] *= globalTexelScale;
-
+                        var faceUScaled = Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w);
+                        var faceVScaled = Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w);
+                        var faceURot = faceUScaled * Mathf.Cos(faceRot[i]) - outputUVs[n].y * Mathf.Sin(faceRot[i]);
+                        var faceYRot = outputUVs[n].y * Mathf.Sin(faceRot[i]) + outputUVs[n].y * Mathf.Cos(faceRot[i]);
                         outputUVs[n] = new Vector2(
-                            (Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w) + (faceShift[i].x % textureWidth)) / (textureWidth),
-                            (Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / (textureHeight)
+                            (+(faceShift[i].x % textureWidth)) / (textureWidth),
+                            (+(-faceShift[i].y % textureHeight)) / (textureHeight)
                         );
 
-                        var rotationRad = faceRot[i] * -Mathf.Deg2Rad;
+                        outputUVs[n] *= globalTexelScale;
 
-                        var rotatedVector = new Vector2
-                        {
-                            x = (outputUVs[n].x * Mathf.Cos(rotationRad)) - (outputUVs[n].y * Mathf.Sin(rotationRad)),
-                            y = (outputUVs[n].x * Mathf.Sin(rotationRad)) + (outputUVs[n].y * Mathf.Cos(rotationRad))
-                        };
-                        outputUVs[n] = rotatedVector * globalTexelScale;
-                        #endif
+                        //outputUVs[n] = new Vector2(
+                        //    (Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w) + (faceShift[i].x % textureWidth)) / (textureWidth),
+                        //    (Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / (textureHeight)
+                        //);
+
+                        //var rotationRad = faceRot[i] * -Mathf.Deg2Rad;
+
+                        //var rotatedVector = new Vector2
+                        //{
+                        //    x = (outputUVs[n].x * Mathf.Cos(rotationRad)) - (outputUVs[n].y * Mathf.Sin(rotationRad)),
+                        //    y = (outputUVs[n].x * Mathf.Sin(rotationRad)) + (outputUVs[n].y * Mathf.Cos(rotationRad))
+                        //};
+                        //outputUVs[n] = rotatedVector * globalTexelScale;
+#endif
                     }
                 }
 
