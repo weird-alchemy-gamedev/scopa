@@ -609,7 +609,7 @@ namespace Scopa {
                         outputUVs[n] = uvOverride[n];
                     } else {
 #if SCOPA_USE_BURST
-                        var rotationRad = -(faceRot[i]);
+                        var rotationRad = -math.radians(faceRot[i]);
                         outputUVs[n] = new float2(
                             (math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w) + (faceShift[i].x % textureWidth)) / textureWidth,
                             (math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / textureHeight
