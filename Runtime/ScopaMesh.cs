@@ -609,18 +609,20 @@ namespace Scopa {
                         outputUVs[n] = uvOverride[n];
                     } else {
 #if SCOPA_USE_BURST
-                        var rotationRad = -math.radians(faceRot[i]);
+                        //var rotationRad = -math.radians(faceRot[i]);
                         outputUVs[n] = new float2(
                             (math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w) + (faceShift[i].x % textureWidth)) / textureWidth,
                             (math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / textureHeight
                         );
 
-                        var rotatedVector = new float2
-                        {
-                            x = (outputUVs[n].x * math.cos(rotationRad)) - (outputUVs[n].y * math.sin(rotationRad)),
-                            y = (outputUVs[n].x * math.sin(rotationRad)) + (outputUVs[n].y * math.cos(rotationRad))
-                        };
-                        outputUVs[n] = rotatedVector * globalTexelScale;
+                        RotateUVs(outputUVs, faceRot[i]);
+
+                        //var rotatedVector = new float2
+                        //{
+                        //    x = (outputUVs[n].x * math.cos(rotationRad)) - (outputUVs[n].y * math.sin(rotationRad)),
+                        //    y = (outputUVs[n].x * math.sin(rotationRad)) + (outputUVs[n].y * math.cos(rotationRad))
+                        //};
+                        //outputUVs[n] = rotatedVector * globalTexelScale;
 
                         //var faceUScaled = math.dot(faceVertices[n], faceU[i].xyz / faceU[i].w);
                         //var faceVScaled = math.dot(faceVertices[n], faceV[i].xyz / -faceV[i].w);
@@ -659,14 +661,7 @@ namespace Scopa {
                             (Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w) + (-faceShift[i].y % textureHeight)) / (textureHeight)
                         );
 
-                        var rotationRad = faceRot[i] * -Mathf.Deg2Rad;
-
-                        var rotatedVector = new Vector2
-                        {
-                            x = (outputUVs[n].x * Mathf.Cos(rotationRad)) - (outputUVs[n].y * Mathf.Sin(rotationRad)),
-                            y = (outputUVs[n].x * Mathf.Sin(rotationRad)) + (outputUVs[n].y * Mathf.Cos(rotationRad))
-                        };
-                        outputUVs[n] = rotatedVector * globalTexelScale;
+                        RotateUVs(outputUVs, faceRot[i]);
 #endif
                     }
                 }
@@ -679,7 +674,76 @@ namespace Scopa {
                 }
             }
         }
+#if SCOPA_USE_BURST
+        void RotateUVs(float2[] uvs, float angle = 90)
+        {
+            var center = (SmallestVector2(uvs) + LargestVector2(uvs)) / 2;
+            for (int i = 0; i < uvs.Length; i++)
+            {
+                uvs[i] = quaternion.Euler(0, 0, angle) * (uvs[i] - center) + (float3)center;
+            }
+        }
 
+        float2 SmallestVector2(float2[] v)
+        {
+            int len = v.Length;
+            float2 l = v[0];
+            for (int i = 0; i < len; i++)
+            {
+                if (v[i].x < l.x) l.x = v[i].x;
+                if (v[i].y < l.y) l.y = v[i].y;
+            }
+            return l;
+        }
+
+        float2 LargestVector2(float2[] v)
+        {
+            int len = v.Length;
+            float2 l = v[0];
+            for (int i = 0; i < len; i++)
+            {
+                if (v[i].x > l.x) l.x = v[i].x;
+                if (v[i].y > l.y) l.y = v[i].y;
+            }
+            return l;
+        }
+
+
+
+#else
+        void RotateUVs(Vector2[] uvs, float angle = 90)
+        {
+            var center = (SmallestVector2(uvs) + LargestVector2(uvs)) / 2;
+            for (int i = 0; i < uvs.Length; i++)
+            {
+                uvs[i] = Quaternion.Euler(0, 0, angle) * (uvs[i] - center) + (Vector3)center;
+            }
+        }
+
+        Vector2 SmallestVector2(Vector2[] v)
+        {
+            int len = v.Length;
+            Vector2 l = v[0];
+            for (int i = 0; i < len; i++)
+            {
+                if (v[i].x < l.x) l.x = v[i].x;
+                if (v[i].y < l.y) l.y = v[i].y;
+            }
+            return l;
+        }
+
+        Vector2 LargestVector2(Vector2[] v)
+        {
+            int len = v.Length;
+            Vector2 l = v[0];
+            for (int i = 0; i < len; i++)
+            {
+                if (v[i].x > l.x) l.x = v[i].x;
+                if (v[i].y > l.y) l.y = v[i].y;
+            }
+            return l;
+        }
+#endif
         public class ColliderJobGroup {
 
             NativeArray<int> faceVertexOffsets, faceTriIndexCounts, solidFaceOffsets; // index = i
@@ -767,13 +831,13 @@ namespace Scopa {
                 jobData.faceTriIndexCounts = faceTriIndexCounts;
                 jobData.solidFaceOffsets = solidFaceOffsets;
 
-                #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
                 jobData.faceVertices = faceVertices.Reinterpret<float3>();
                 jobData.facePlaneNormals = facePlaneNormals.Reinterpret<float3>();
-                #else
+#else
                 jobData.faceVertices = faceVertices;
                 jobData.facePlaneNormals = facePlaneNormals;
-                #endif
+#endif
 
                 jobData.meshDataArray = outputMesh;
                 jobData.canBeBoxColliderResults = canBeBoxCollider;
@@ -821,20 +885,20 @@ namespace Scopa {
                 return meshes;
             }
 
-            #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
             [BurstCompile]
-            #endif
+#endif
             public struct ColliderJob : IJobParallelFor
             {
                 [ReadOnlyAttribute] public NativeArray<int> faceVertexOffsets, faceTriIndexCounts, solidFaceOffsets; // index = i
 
-                #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
                 [ReadOnlyAttribute] public NativeArray<float3> faceVertices, facePlaneNormals;
                 [ReadOnlyAttribute] public float3 meshOrigin;
-                #else            
+#else
                 [ReadOnlyAttribute] public NativeArray<Vector3> faceVertices, facePlaneNormals;
                 [ReadOnlyAttribute] public Vector3 meshOrigin;
-                #endif
+#endif
                 
                 public Mesh.MeshDataArray meshDataArray;
                 [WriteOnly] public NativeArray<bool> canBeBoxColliderResults;
@@ -852,11 +916,11 @@ namespace Scopa {
 
                     var meshData = meshDataArray[i];
 
-                    #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
                     var outputVerts = meshData.GetVertexData<float3>();
-                    #else
+#else
                     var outputVerts = meshData.GetVertexData<Vector3>();
-                    #endif
+#endif
 
                     var outputTris = meshData.GetIndexData<int>();
 
@@ -866,11 +930,11 @@ namespace Scopa {
                         // don't bother doing BoxCollider test if we're forcing BoxColliderOnly
                         if (canBeBoxCollider && colliderMode != ScopaMapConfig.ColliderImportMode.BoxColliderOnly) {
                             // but otherwise, test if all face normals are axis aligned... if so, it can be a box collider
-                            #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
                             var absNormal = math.abs(facePlaneNormals[face]);
-                            #else
+#else
                             var absNormal = facePlaneNormals[face].Absolute();
-                            #endif
+#endif
 
                             canBeBoxCollider = !((absNormal.x > 0.01f && absNormal.x < 0.99f) 
                                             || (absNormal.z > 0.01f && absNormal.z < 0.99f) 
@@ -973,15 +1037,15 @@ namespace Scopa {
             jobData.cos = Mathf.Cos(weldingAngle * Mathf.Deg2Rad);
             jobData.maxDelta = maxDelta;
 
-            #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
             jobData.verts = verts.Reinterpret<float3>();
             jobData.normals = normals.Reinterpret<float3>();
             jobData.results = smoothNormalsResults.Reinterpret<float3>();
-            #else
+#else
             jobData.verts = verts;
             jobData.normals = normals;
             jobData.results = smoothNormalsResults;
-            #endif
+#endif
 
             var handle = jobData.Schedule(smoothNormalsResults.Length, 8);
             handle.Complete();
@@ -995,18 +1059,18 @@ namespace Scopa {
             smoothNormalsResults.Dispose();
         }
 
-        #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
         [BurstCompile]
-        #endif
+#endif
         public struct SmoothJob : IJobParallelFor
         {
-            #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
             [ReadOnlyAttribute] public NativeArray<float3> verts, normals;
             public NativeArray<float3> results;
-            #else
+#else
             [ReadOnlyAttribute] public NativeArray<Vector3> verts, normals;
             public NativeArray<Vector3> results;
-            #endif
+#endif
 
             public float cos, maxDelta;
 
@@ -1016,11 +1080,11 @@ namespace Scopa {
                 var resultCount = 1;
                 
                 for(int i2 = 0; i2 < verts.Length; i2++) {
-                    #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
                     if ( math.lengthsq(verts[i2] - verts[i] ) <= maxDelta && math.dot(normals[i2], normals[i] ) >= cos ) 
-                    #else
+#else
                     if ( (verts[i2] - verts[i] ).sqrMagnitude <= maxDelta && Vector3.Dot(normals[i2], normals[i] ) >= cos ) 
-                    #endif
+#endif
                     {
                         tempResult += normals[i2];
                         resultCount++;
@@ -1028,11 +1092,11 @@ namespace Scopa {
                 }
 
                 if (resultCount > 1)
-                #if SCOPA_USE_BURST
+#if SCOPA_USE_BURST
                     tempResult = math.normalize(tempResult / resultCount);
-                #else
+#else
                     tempResult = (tempResult / resultCount).normalized;
-                #endif
+#endif
                 results[i] = tempResult;
             }
         }
