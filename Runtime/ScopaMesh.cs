@@ -675,7 +675,7 @@ namespace Scopa {
             }
         }
 #if SCOPA_USE_BURST
-        void RotateUVs(float2[] uvs, float angle = 90)
+        static void RotateUVs(float2[] uvs, float angle = 90)
         {
             var center = (SmallestVector2(uvs) + LargestVector2(uvs)) / 2;
             for (int i = 0; i < uvs.Length; i++)
@@ -684,7 +684,7 @@ namespace Scopa {
             }
         }
 
-        float2 SmallestVector2(float2[] v)
+        static float2 SmallestVector2(float2[] v)
         {
             int len = v.Length;
             float2 l = v[0];
@@ -696,7 +696,7 @@ namespace Scopa {
             return l;
         }
 
-        float2 LargestVector2(float2[] v)
+        static float2 LargestVector2(float2[] v)
         {
             int len = v.Length;
             float2 l = v[0];
@@ -711,7 +711,7 @@ namespace Scopa {
 
 
 #else
-        void RotateUVs(Vector2[] uvs, float angle = 90)
+        static void RotateUVs(Vector2[] uvs, float angle = 90)
         {
             var center = (SmallestVector2(uvs) + LargestVector2(uvs)) / 2;
             for (int i = 0; i < uvs.Length; i++)
@@ -720,7 +720,7 @@ namespace Scopa {
             }
         }
 
-        Vector2 SmallestVector2(Vector2[] v)
+        static Vector2 SmallestVector2(Vector2[] v)
         {
             int len = v.Length;
             Vector2 l = v[0];
@@ -732,7 +732,7 @@ namespace Scopa {
             return l;
         }
 
-        Vector2 LargestVector2(Vector2[] v)
+        static Vector2 LargestVector2(Vector2[] v)
         {
             int len = v.Length;
             Vector2 l = v[0];
