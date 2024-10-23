@@ -16,11 +16,6 @@
     "defineConstraints": [],
     "versionDefines": [
         {
-            "name": "com.unity.burst",
-            "expression": "1.0",
-            "define": "SCOPA_USE_BURST"
-        },
-        {
             "name": "com.unity.collections",
             "expression": "1.0",
             "define": "SCOPA_COLLECTIONS"
