@@ -688,8 +688,8 @@ namespace Scopa
 
                         // Step 1: Calculate the base UVs without rotation
                         outputUVs[n] = new Vector2(
-                            ((Vector3.Dot(faceVertices[n], faceU[i])) / textureWidth),
-                            ((Vector3.Dot(faceVertices[n], faceV[i])) / textureHeight)
+                            (Vector3.Dot(faceVertices[n], faceU[i]) / textureWidth),
+                            (Vector3.Dot(faceVertices[n], faceV[i]) / textureHeight)
                         );
 
                         // Step 2: Calculate the rotation as radians
@@ -698,13 +698,16 @@ namespace Scopa
                         // Step 3: Rotate the UVs around the origin (0, 0)
                         outputUVs[n] = RotateUVs(outputUVs[n], rotation);
 
-                        // Step 4: Apply any additional translation related to faceShift
+                        // Step 4: Apply scaling BEFORE translation
+                        outputUVs[n] = new Vector2(
+                            outputUVs[n].x / faceU[i].w,
+                            outputUVs[n].y / faceV[i].w
+                        );
+
+                        // Step 5: Apply translation related to faceShift BEFORE scaling
                         outputUVs[n] += new Vector2(faceShift[i].x / textureWidth, faceShift[i].y / textureHeight);
 
-                        var preScaled = outputUVs[n];
-                        outputUVs[n] = new Vector2(preScaled.x / faceU[i].w, preScaled.y / faceV[i].w);
-
-                        // Step 5: Apply global texel scale if needed
+                        // Step 6: Optionally apply global texel scale if needed
                         outputUVs[n] *= globalTexelScale;
 #endif
                     }
