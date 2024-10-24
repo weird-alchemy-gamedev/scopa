@@ -610,7 +610,7 @@ namespace Scopa
             public Mesh.MeshData meshData;
 
             [ReadOnlyAttribute] public float scalingFactor, globalTexelScale, textureWidth, textureHeight;
-            public const float IGNORE_UV = -99999f;
+            public const float IGNORE_UV = -999999999f;
 
             public void Execute(int i)
             {
@@ -626,6 +626,16 @@ namespace Scopa
 #endif
 
                 var outputTris = meshData.GetIndexData<int>();
+
+                if (textureWidth > 2048)
+                {
+                    Debug.LogWarning("Texture width for a brush is greater than 2048! This may cause importing issues...");
+                }
+
+                if (textureHeight > 2048)
+                {
+                    Debug.LogWarning("Texture height for a brush is greater than 2048! This may cause importing issues...");
+                }
 
                 // add all verts, normals, and UVs
                 for (int n = offsetStart; n < offsetEnd; n++)
@@ -675,37 +685,31 @@ namespace Scopa
                         //outputUVs[n] = rotatedVector * globalTexelScale;
 #else
 
-                        //var faceUScaled = Vector3.Dot(faceVertices[n], faceU[i] / faceU[i].w);
-                        //var faceVScaled = Vector3.Dot(faceVertices[n], faceV[i] / -faceV[i].w);
-                        //var faceURot = faceUScaled * Mathf.Cos(faceRot[i]) - outputUVs[n].y * Mathf.Sin(faceRot[i]);
-                        //var faceYRot = outputUVs[n].y * Mathf.Sin(faceRot[i]) + outputUVs[n].y * Mathf.Cos(faceRot[i]);
-                        //outputUVs[n] = new Vector2(
-                        //    (+(faceShift[i].x % textureWidth)) / (textureWidth),
-                        //    (+(-faceShift[i].y % textureHeight)) / (textureHeight)
-                        //);
-
-                        //outputUVs[n] *= globalTexelScale;
-
                         // Step 1: Calculate the base UVs without rotation
                         outputUVs[n] = new Vector2(
-                            (Vector3.Dot(faceVertices[n], faceU[i]) / textureWidth),
-                            (Vector3.Dot(faceVertices[n], faceV[i]) / textureHeight)
+                            (Vector3.Dot(faceVertices[n], faceU[i])),
+                            (Vector3.Dot(faceVertices[n], faceV[i]))
                         );
 
-                        // Step 2: Calculate the rotation as radians
-                        var rotation = faceRot[i];
+                        // Step 2: Rotate the UVs around the origin (0, 0)
+                        outputUVs[n] = RotateUVs(outputUVs[n], faceRot[i]);
 
-                        // Step 3: Rotate the UVs around the origin (0, 0)
-                        outputUVs[n] = RotateUVs(outputUVs[n], rotation);
 
-                        // Step 4: Apply scaling BEFORE translation
+                        // Step 3: Apply base scaling BEFORE translation
                         outputUVs[n] = new Vector2(
-                            outputUVs[n].x / faceU[i].w,
-                            outputUVs[n].y / faceV[i].w
+                            outputUVs[n].x / (faceU[i].w),
+                            outputUVs[n].y / (-faceV[i].w)
                         );
 
-                        // Step 5: Apply translation related to faceShift BEFORE scaling
-                        outputUVs[n] += new Vector2(faceShift[i].x / textureWidth, faceShift[i].y / textureHeight);
+
+
+                        // Step 5: Apply translation related to faceShift BEFORE scaling to unity units
+                        outputUVs[n] += new Vector2(faceShift[i].x, -faceShift[i].y);
+
+                        outputUVs[n] = new Vector2(
+                            outputUVs[n].x / textureWidth,
+                            outputUVs[n].y / textureHeight
+                        );
 
                         // Step 6: Optionally apply global texel scale if needed
                         outputUVs[n] *= globalTexelScale;
